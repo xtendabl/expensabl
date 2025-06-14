@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Navan Expense Automator",
+  "version": "1.0",
+  "description": "Automate and schedule Navan expense submissions.",
+  "permissions": ["scripting", "storage", "alarms", "notifications", "webRequest"],
+  "host_permissions": ["https://app.navan.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.navan.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
