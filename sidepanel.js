@@ -127,20 +127,28 @@ function renderStep2() {
 // Step 3: Show spinner and fetch transactions
 function renderStep3(selectedTxn) {
   inner.innerHTML = `
-    <h2>Fetching Transactions...</h2>
+    <h2>Fetching Single Expense...</h2>
     <div id="spinner">⏳ Loading...</div>
+    <div id="expenseResult"></div>
   `;
   document.getElementById('spinner').style.display = 'block';
 
   // Send selectedTxn to content.js to fetch related transactions
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     chrome.tabs.sendMessage(tab.id, { action: 'fetchExpense', selectedTxn }, (response) => {
-      if (response && response.transactions) {
-        console.log('Response', response);
-        response
-        //renderStep4(response);
+      const spinner = document.getElementById('spinner');
+      const resultDiv = document.getElementById('expenseResult');
+      spinner.style.display = 'none';
+      console.log('Fetched expense response:', response);
+      if (response ) {
+        // Render the fetched expense details
+        resultDiv.innerHTML = `
+          <h3>Expense Details</h3>
+          <pre style="white-space:pre-wrap;">${JSON.stringify(response, null, 2)}</pre>
+        `;
+        // Optionally, add a "Continue" button or next step here
       } else {
-        inner.innerHTML = `<div>Error loading transactions.</div>`;
+        resultDiv.innerHTML = `<div>Error loading expense details.</div>`;
       }
     });
   });
