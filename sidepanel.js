@@ -134,22 +134,30 @@ function renderStep3(selectedTxn) {
   document.getElementById('spinner').style.display = 'block';
 
   // Send selectedTxn to content.js to fetch related transactions
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    chrome.tabs.sendMessage(tab.id, { action: 'fetchExpense', selectedTxn }, (response) => {
-      const spinner = document.getElementById('spinner');
-      const resultDiv = document.getElementById('expenseResult');
-      spinner.style.display = 'none';
-      console.log('Fetched expense response:', response);
-      if (response ) {
-        // Render the fetched expense details
-        resultDiv.innerHTML = `
-          <h3>Expense Details</h3>
-          <pre style="white-space:pre-wrap;">${JSON.stringify(response, null, 2)}</pre>
-        `;
-        // Optionally, add a "Continue" button or next step here
-      } else {
-        resultDiv.innerHTML = `<div>Error loading expense details.</div>`;
+  return new Promise((resolve, reject) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (!tab) {
+        reject('No active tab found');
+        return;
       }
+      chrome.tabs.sendMessage(tab.id, { action: 'fetchExpense', selectedTxn }, (response) => {
+        const spinner = document.getElementById('spinner');
+        const resultDiv = document.getElementById('expenseResult');
+        spinner.style.display = 'none';
+        console.log('Fetched expense response:', response);
+        if (response) {
+          // Render the fetched expense details
+          resultDiv.innerHTML = `
+            <h3>Expense Details</h3>
+            <pre style="white-space:pre-wrap;">${JSON.stringify(response, null, 2)}</pre>
+          `;
+          // Optionally, add a "Continue" button or next step here
+          resolve(response);
+        } else {
+          resultDiv.innerHTML = `<div>Error loading expense details.</div>`;
+          resolve(null);
+        }
+      });
     });
   });
 }

@@ -26,8 +26,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ data });
       })
       .catch(error => sendResponse({ error: error.toString() }));
-      return true; // Keep the message channel open for async response
+      // Do not return true here; return true from the outer listener
     });
+    return true; // Keep the message channel open for async response
   }
 
   if (msg.action === 'getSampledExpenses') {
