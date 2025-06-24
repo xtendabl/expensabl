@@ -2,28 +2,32 @@
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   console.log('content.js received message:', msg);
   if (msg.action === 'fetchExpense') {
-    // Extract GUID from URL dynamically
-    const guidMatch = window.location.href.match(/[0-9a-fA-F-]{36}/);
-    const guid = guidMatch ? guidMatch[0] : null;
-    if (!guid) {
-      sendResponse({ error: 'No GUID found in URL.' });
-      return true;
-    }
-    const url = `https://app.navan.com/api/liquid/user/expenses/${guid}`;
-    const rawToken = localStorage.getItem('tripactions.TripActionsToken');
-    const token = rawToken ? JSON.parse(rawToken) : null;
-    fetch(url, {
-      method: 'GET',
-      headers: {
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "en",
-        "authorization": token ? `${token}` : ''
+    console.log('Handling fetchExpense action');
+    chrome.storage.local.get('bearerToken', (result) => {
+      const token = result.bearerToken;
+      if (!token) {
+        sendResponse({ error: 'No bearer token found.' });
+        return;
       }
-    })
+      console.log('Fetching fetchExpense with token:', token);
+      const guid = msg.selectedTxn.id;
+      const url = `https://app.navan.com/api/liquid/user/expenses/${guid}`;
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          "accept": "application/json, text/plain, */*",
+          "accept-language": "en",
+          "authorization": token ? `${token}` : ''
+        }
+      })
       .then(res => res.json())
-      .then(data => sendResponse({ data }))
+      .then(data => {
+        console.log('Fetched expense data from transaction id:', data);
+        sendResponse({ data });
+      })
       .catch(error => sendResponse({ error: error.toString() }));
-    return true; // Keep the message channel open for async response
+      return true; // Keep the message channel open for async response
+    });
   }
 
   if (msg.action === 'getSampledExpenses') {
@@ -48,7 +52,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           return res.json();
         })
         .then(data => {
-          console.log('Fetched data:', data);
+          console.log('Fetched data from transactions:', data);
           sendResponse({ data });
         })
         .catch(error => {
@@ -60,33 +64,3 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true; // Keep the message channel open for async response
   }
 });
-
-// const token = (await chrome.storage.local.get('bearerToken')).bearerToken;
-// if (!token) {
-//   sendResponse({ error: 'No bearer token found.' });
-//   return;
-// }
-
-
-// chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-//   if (msg.action === 'getSampledExpenses') {
-//     fetch('https://app.navan.com/api/liquid/user/search/transactions', {
-//       method: 'GET',
-//       credentials: 'include',
-//       headers: { 
-//       'Accept': 'application/json, text/plain, */*"',
-//       'Accept-Language': 'en',
-//       'Authorization': token ? `${token}` : ''
-//       }
-//     })
-//       .then(res => res.json())
-//       .then(data => {
-//       console.log(data);
-//       sendResponse({ data });
-//       })
-//       .catch(error => {
-//       sendResponse({ error: error.toString() });
-//       });
-//     return true; // Keeps the message channel open for async sendResponse
-//   }
-// });

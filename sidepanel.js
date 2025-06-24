@@ -82,7 +82,37 @@ function renderStep2() {
         console.log('Sent request to content.js:');
         const listDiv = document.getElementById('sampledExpensesList');
         if (response) {
-          listDiv.textContent = JSON.stringify(response, null, 2);
+          // listDiv.textContent = JSON.stringify(response, null, 2);
+            // Create a dropdown of all transactions showing merchant.name and merchantAmount
+            const transactions = response.data._embedded.transactions || [];
+            if (transactions.length === 0) {
+              listDiv.textContent = 'No transactions found.';
+            } else {
+              const selectHtml = `
+                <label for="transactionsDropdown">Select a transaction:</label>
+                <select id="transactionsDropdown">
+                  ${transactions.map(txn => `
+                    <option value="${txn.id}">
+                      ${txn.merchant?.name || 'Unknown Merchant'} - ${txn.merchantAmount || ''}
+                    </option>
+                  `).join('')}
+                </select>
+                <button id="continueToStep3">Continue</button>
+              `;
+              listDiv.innerHTML = selectHtml;
+
+              // Add event listener for the continue button
+              document.getElementById('continueToStep3').onclick = () => {
+                const dropdown = document.getElementById('transactionsDropdown');
+                const selectedId = dropdown.value;
+                console.log('Selected dropdownID:', selectedId);
+                // Find the selected transaction object
+                const selectedTxn = transactions.find(txn => txn.id === selectedId);
+                console.log('Selected transaction:', selectedTxn);
+                // Pass the selected transaction id (or object) to renderStep3
+                renderStep3(selectedTxn);
+              };
+            }
           resolve(response);
         } else {
           console.log("No message kicked off or error occurred")
@@ -95,18 +125,20 @@ function renderStep2() {
 }
 
 // Step 3: Show spinner and fetch transactions
-function renderStep3() {
+function renderStep3(selectedTxn) {
   inner.innerHTML = `
     <h2>Fetching Transactions...</h2>
     <div id="spinner">⏳ Loading...</div>
   `;
   document.getElementById('spinner').style.display = 'block';
 
-  // Example: fetch transactions via content script
+  // Send selectedTxn to content.js to fetch related transactions
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    chrome.tabs.sendMessage(tab.id, { action: 'getSampledResponses' }, (response) => {
+    chrome.tabs.sendMessage(tab.id, { action: 'fetchExpense', selectedTxn }, (response) => {
       if (response && response.transactions) {
-        renderStep4(response.transactions);
+        console.log('Response', response);
+        response
+        //renderStep4(response);
       } else {
         inner.innerHTML = `<div>Error loading transactions.</div>`;
       }
@@ -114,84 +146,84 @@ function renderStep3() {
   });
 }
 
-// Step 4: Show transactions
-function renderStep4(transactions) {
-  inner.innerHTML = `
-    <h2>Select a Transaction</h2>
-    <form id="txnForm">
-      ${transactions.map((txn, i) =>
-        `<label>
-          <input type="radio" name="txn" value="${txn.id}" ${i === 0 ? 'checked' : ''}>
-          ${txn.name || txn.description || 'Transaction'} - ${txn.amount || ''} (${txn.date || ''})
-        </label><br>`
-      ).join('')}
-      <button type="submit">Submit</button>
-    </form>
-  `;
-  document.getElementById('txnForm').onsubmit = (e) => {
-    e.preventDefault();
-    const selected = document.querySelector('input[name="txn"]:checked').value;
-    inner.innerHTML = `<div>Submitted transaction ID: ${selected}</div>`;
-    // Continue to next step or finish
-  };
-}
+// // Step 4: Show transactions
+// function renderStep4(transactions) {
+//   inner.innerHTML = `
+//     <h2>Select a Transaction</h2>
+//     <form id="txnForm">
+//       ${transactions.map((txn, i) =>
+//         `<label>
+//           <input type="radio" name="txn" value="${txn.id}" ${i === 0 ? 'checked' : ''}>
+//           ${txn.name || txn.description || 'Transaction'} - ${txn.amount || ''} (${txn.date || ''})
+//         </label><br>`
+//       ).join('')}
+//       <button type="submit">Submit</button>
+//     </form>
+//   `;
+//   document.getElementById('txnForm').onsubmit = (e) => {
+//     e.preventDefault();
+//     const selected = document.querySelector('input[name="txn"]:checked').value;
+//     inner.innerHTML = `<div>Submitted transaction ID: ${selected}</div>`;
+//     // Continue to next step or finish
+//   };
+// }
 
 // Start the flow
 renderStep1();
 
-document.getElementById('openSite').onclick = async function() {
-  const platform = document.getElementById('platform').value;
-  const url = platformUrls[platform];
-  const statusDiv = document.getElementById('status');
-  const spinner = document.getElementById('spinner');
-  statusDiv.textContent = "Opening site and waiting for sign-in...";
-  spinner.style.display = "block";
+// document.getElementById('openSite').onclick = async function() {
+//   const platform = document.getElementById('platform').value;
+//   const url = platformUrls[platform];
+//   const statusDiv = document.getElementById('status');
+//   const spinner = document.getElementById('spinner');
+//   statusDiv.textContent = "Opening site and waiting for sign-in...";
+//   spinner.style.display = "block";
 
-  // Open the platform in the current tab
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.tabs.update(tab.id, { url }, () => {
-    chrome.tabs.onUpdated.addListener(function listener(updatedTabId, info) {
-      if (updatedTabId === tab.id && info.status === 'complete') {
-        chrome.tabs.onUpdated.removeListener(listener);
-        // Programmatically inject content.js
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['content.js']
-        }, () => {
-          // Now it's safe to send a message to the content script
-          chrome.tabs.sendMessage(tab.id, { action: 'getSampledExpenses' }, (response) => {
-            if (response && response.ready) {
-              spinner.style.display = "none";
-              statusDiv.textContent = "Select the expense report you want to automate:";
-              const optionsDiv = document.getElementById('expenseOptions');
-              optionsDiv.innerHTML = `
-                <label><input type="radio" name="expenseType" value="Phone" checked> Phone</label><br>
-                <label><input type="radio" name="expenseType" value="Internet"> Internet</label><br>
-                <button id="submitExpenseType">Continue</button>
-              `;
-              document.getElementById('submitExpenseType').onclick = () => {
-                const selectedType = document.querySelector('input[name="expenseType"]:checked').value;
-                statusDiv.textContent = `You selected: ${selectedType}. Automating...`;
-                chrome.tabs.sendMessage(tab.id, { action: 'fetchExpense', expenseType: selectedType }, (fetchResp) => {
-                  if (fetchResp?.data) {
-                    alert('Expense details fetched! Check console for data.');
-                    console.log(fetchResp.data);
-                  } else {
-                    alert('Failed to fetch expense.');
-                  }
-                });
-              };
-            }
-          });
-        });
-      }
-    });
-  });
-};
+//   // Open the platform in the current tab
+//   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+//   chrome.tabs.update(tab.id, { url }, () => {
+//     chrome.tabs.onUpdated.addListener(function listener(updatedTabId, info) {
+//       if (updatedTabId === tab.id && info.status === 'complete') {
+//         chrome.tabs.onUpdated.removeListener(listener);
+//         // Programmatically inject content.js
+//         chrome.scripting.executeScript({
+//           target: { tabId: tab.id },
+//           files: ['content.js']
+//         }, () => {
+//           // Now it's safe to send a message to the content script
+//           chrome.tabs.sendMessage(tab.id, { action: 'getSampledExpenses' }, (response) => {
+//             if (response && response.ready) {
+//               spinner.style.display = "none";
+//               statusDiv.textContent = "Select the expense report you want to automate:";
+//               const optionsDiv = document.getElementById('expenseOptions');
+//               optionsDiv.innerHTML = `
+//                 <label><input type="radio" name="expenseType" value="Phone" checked> Phone</label><br>
+//                 <label><input type="radio" name="expenseType" value="Internet"> Internet</label><br>
+//                 <button id="submitExpenseType">Continue</button>
+//               `;
+//               document.getElementById('submitExpenseType').onclick = () => {
+//                 const selectedType = document.querySelector('input[name="expenseType"]:checked').value;
+//                 statusDiv.textContent = `You selected: ${selectedType}. Automating...`;
+//                 chrome.tabs.sendMessage(tab.id, { action: 'fetchExpense', expenseType: selectedType }, (fetchResp) => {
+//                   if (fetchResp?.data) {
+//                     alert('Expense details fetched! Check console for data.');
+//                     console.log(fetchResp.data);
+//                   } else {
+//                     alert('Failed to fetch expense.');
+//                   }
+//                 });
+//               };
+//             }
+//           });
+//         });
+//       }
+//     });
+//   });
+// };
 
-// sidepanel.js
-chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-  chrome.tabs.sendMessage(tab.id, { action: 'fetchTransactions' }, (response) => {
-    // Use response.transactions to update your UI
-  });
-});
+// // sidepanel.js
+// // chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+// //   chrome.tabs.sendMessage(tab.id, { action: 'fetchTransactions' }, (response) => {
+// //     // Use response.transactions to update your UI
+// //   });
+// // });
