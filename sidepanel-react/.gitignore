@@ -1,0 +1,22 @@
+# Node modules
+node_modules/
+sidepanel-react/node_modules/
+
+# Vite/React build output
+dist/
+sidepanel-react/dist/
+sidepanel.bundle.js
+
+# System files
+.DS_Store
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE/editor settings
+.vscode/
+.idea/

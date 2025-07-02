@@ -1,36 +1,52 @@
 import React, { useState } from 'react';
 
-const platformUrls = {
+const platformUrls: Record<string, string> = {
   navan: "https://app.navan.com/app/liquid/user/home",
   concur: "https://www.concursolutions.com/",
   expensify: "https://www.expensify.com/"
 };
 
-function SidepanelWizard() {
+type Transaction = {
+  id: string;
+  merchant?: { name?: string };
+  merchantAmount?: string;
+  [key: string]: any;
+};
+
+type ExpenseDetails = {
+  merchant?: any;
+  merchantAmount?: any;
+  currency?: any;
+  date?: any;
+  category?: any;
+  description?: any;
+  [key: string]: any;
+};
+
+const SidepanelWizard: React.FC = () => {
   const [step, setStep] = useState(1);
   const [platform, setPlatform] = useState('');
-  const [transactions, setTransactions] = useState([]);
-  const [selectedTxn, setSelectedTxn] = useState(null);
-  const [expenseDetails, setExpenseDetails] = useState(null);
-  const [automationResult, setAutomationResult] = useState(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
+  const [expenseDetails, setExpenseDetails] = useState<ExpenseDetails | null>(null);
+  const [automationResult, setAutomationResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Step 1: Platform selection
-  const handlePlatformSelect = async (e) => {
+  const handlePlatformSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setPlatform(value);
     setError('');
     setLoading(true);
-    // Navigate and inject content.js
     const url = platformUrls[value];
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      chrome.tabs.update(tab.id, { url }, () => {
+      chrome.tabs.update(tab.id!, { url }, () => {
         chrome.tabs.onUpdated.addListener(function listener(updatedTabId, info) {
           if (updatedTabId === tab.id && info.status === 'complete') {
             chrome.tabs.onUpdated.removeListener(listener);
             chrome.scripting.executeScript({
-              target: { tabId: tab.id },
+              target: { tabId: tab.id! },
               files: ['content.js']
             }, () => {
               setLoading(false);
@@ -47,7 +63,7 @@ function SidepanelWizard() {
     setLoading(true);
     setError('');
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      chrome.tabs.sendMessage(tab.id, { action: 'getSampledExpenses' }, (response) => {
+      chrome.tabs.sendMessage(tab.id!, { action: 'getSampledExpenses' }, (response) => {
         setLoading(false);
         if (response && response.data && response.data._embedded) {
           setTransactions(response.data._embedded.transactions || []);
@@ -59,12 +75,12 @@ function SidepanelWizard() {
   };
 
   // Step 3: Fetch single expense details
-  const fetchExpenseDetails = (txn) => {
+  const fetchExpenseDetails = (txn: Transaction) => {
     setLoading(true);
     setError('');
     setSelectedTxn(txn);
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      chrome.tabs.sendMessage(tab.id, { action: 'fetchExpense', selectedTxn: txn }, (response) => {
+      chrome.tabs.sendMessage(tab.id!, { action: 'fetchExpense', selectedTxn: txn }, (response) => {
         setLoading(false);
         if (response && response.data) {
           setExpenseDetails(response.data);
@@ -89,7 +105,7 @@ function SidepanelWizard() {
       description: expenseDetails.description,
     };
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      chrome.tabs.sendMessage(tab.id, { action: 'createExpense', body: postBody }, (response) => {
+      chrome.tabs.sendMessage(tab.id!, { action: 'createExpense', body: postBody }, (response) => {
         setLoading(false);
         if (response && response.data) {
           setAutomationResult(response.data);
@@ -124,7 +140,7 @@ function SidepanelWizard() {
             <div style={{ marginTop: 16 }}>
               <label>Select a transaction:</label>
               <select onChange={e => {
-                const txn = transactions.find(t => t.id === e.target.value);
+                const txn = transactions.find(t => t.id === e.target.value) || null;
                 setSelectedTxn(txn);
               }} style={{ marginLeft: 8 }}>
                 <option value="" disabled selected>Select</option>
@@ -134,7 +150,7 @@ function SidepanelWizard() {
                   </option>
                 ))}
               </select>
-              <button style={{ marginLeft: 8 }} disabled={!selectedTxn} onClick={() => { setStep(3); fetchExpenseDetails(selectedTxn); }}>Continue</button>
+              <button style={{ marginLeft: 8 }} disabled={!selectedTxn} onClick={() => { setStep(3); if (selectedTxn) fetchExpenseDetails(selectedTxn); }}>Continue</button>
             </div>
           )}
         </div>
@@ -158,6 +174,6 @@ function SidepanelWizard() {
       )}
     </div>
   );
-}
+};
 
 export default SidepanelWizard;
