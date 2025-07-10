@@ -1,0 +1,77 @@
+.landing-root {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #232526 0%, #414345 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+}
+
+.landing-card {
+  background: rgba(255,255,255,0.95);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  padding: 2.5rem 2rem 2rem 2rem;
+  max-width: 370px;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.landing-title {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #232526;
+  margin-bottom: 0.7rem;
+  letter-spacing: 0.5px;
+}
+
+.landing-subtitle {
+  color: #555;
+  font-size: 1.08rem;
+  margin-bottom: 2.2rem;
+  line-height: 1.5;
+}
+
+.landing-actions {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+}
+
+.panel-btn {
+  flex: 1;
+  padding: 1rem 0.5rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  box-shadow: 0 2px 8px rgba(44,62,80,0.08);
+}
+
+.panel-btn.automate {
+  background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+  color: #fff;
+}
+
+.panel-btn.automate:hover {
+  background: linear-gradient(90deg, #0072ff 0%, #00c6ff 100%);
+}
+
+.panel-btn.dashboard {
+  background: linear-gradient(90deg, #f7971e 0%, #ffd200 100%);
+  color: #232526;
+}
+
+.panel-btn.dashboard:hover {
+  background: linear-gradient(90deg, #ffd200 0%, #f7971e 100%);
+}
+
+.landing-footer {
+  color: #bbb;
+  font-size: 0.95rem;
+  margin-top: 1.5rem;
+  letter-spacing: 0.2px;
+}

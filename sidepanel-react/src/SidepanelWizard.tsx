@@ -23,7 +23,7 @@ type ExpenseDetails = {
   [key: string]: any;
 };
 
-const SidepanelWizard: React.FC = () => {
+const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) => {
   const [step, setStep] = useState(1);
   const [platform, setPlatform] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -116,10 +116,13 @@ const SidepanelWizard: React.FC = () => {
     });
   };
 
-  // Render steps
+  // Only wizard logic below
   return (
     <div style={{ padding: 16, fontFamily: 'sans-serif', minWidth: 320 }}>
       <h2>Expensabl Wizard</h2>
+      {onBackHome && (
+        <button style={{ marginBottom: 16 }} onClick={onBackHome}>&larr; Back Home</button>
+      )}
       {error && <div style={{ color: 'red' }}>{error}</div>}
       {loading && <div>Loading...</div>}
       {!loading && step === 1 && (
