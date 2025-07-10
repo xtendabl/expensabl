@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './SidepanelWizard.css';
 
 const platformUrls: Record<string, string> = {
   navan: "https://app.navan.com/app/liquid/user/home",
@@ -23,6 +24,8 @@ type ExpenseDetails = {
   [key: string]: any;
 };
 
+const TOTAL_STEPS = 4;
+
 const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) => {
   const [step, setStep] = useState(1);
   const [platform, setPlatform] = useState('');
@@ -33,9 +36,7 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Step 1: Platform selection
-  const handlePlatformSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const goToPlatform = (value: string) => {
     setPlatform(value);
     setError('');
     setLoading(true);
@@ -58,8 +59,7 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
     });
   };
 
-  // Step 2: Fetch sampled expenses
-  const fetchSampledExpenses = () => {
+  const loadExpenses = () => {
     setLoading(true);
     setError('');
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
@@ -74,16 +74,16 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
     });
   };
 
-  // Step 3: Fetch single expense details
-  const fetchExpenseDetails = (txn: Transaction) => {
+  const fetchDetails = () => {
+    if (!selectedTxn) return;
     setLoading(true);
     setError('');
-    setSelectedTxn(txn);
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      chrome.tabs.sendMessage(tab.id!, { action: 'fetchExpense', selectedTxn: txn }, (response) => {
+      chrome.tabs.sendMessage(tab.id!, { action: 'fetchExpense', selectedTxn }, (response) => {
         setLoading(false);
         if (response && response.data) {
           setExpenseDetails(response.data);
+          setStep(3);
         } else {
           setError('Failed to fetch expense details.');
         }
@@ -91,8 +91,7 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
     });
   };
 
-  // Step 4: Automate creation of similar expense
-  const automateExpense = () => {
+  const automate = () => {
     if (!expenseDetails) return;
     setLoading(true);
     setError('');
@@ -109,6 +108,7 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
         setLoading(false);
         if (response && response.data) {
           setAutomationResult(response.data);
+          setStep(4);
         } else {
           setError('Failed to automate expense.');
         }
@@ -116,63 +116,107 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
     });
   };
 
-  // Only wizard logic below
+  const renderProgress = () => {
+    const percent = (step / TOTAL_STEPS) * 100;
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ height: 8, background: '#eee', borderRadius: 4 }}>
+          <div
+            style={{
+              width: `${percent}%`,
+              height: '100%',
+              background: '#4caf50',
+              borderRadius: 4,
+              transition: 'width 0.3s ease-in-out',
+            }}
+          />
+        </div>
+        <div style={{ fontSize: 12, textAlign: 'right', marginTop: 4 }}>
+          Step {step} of {TOTAL_STEPS}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ padding: 16, fontFamily: 'sans-serif', minWidth: 320 }}>
       <h2>Expensabl Wizard</h2>
-      {onBackHome && (
-        <button style={{ marginBottom: 16 }} onClick={onBackHome}>&larr; Back Home</button>
-      )}
+      {onBackHome && <button onClick={onBackHome}>&larr; Back</button>}
+      {renderProgress()}
       {error && <div style={{ color: 'red' }}>{error}</div>}
       {loading && <div>Loading...</div>}
+
+      {/* Step 1 */}
       {!loading && step === 1 && (
         <div>
-          <label>Choose your expense platform:</label>
-          <select value={platform} onChange={handlePlatformSelect} style={{ marginLeft: 8 }}>
-            <option value="" disabled>Select a platform</option>
+          <h3>Select Your Platform</h3>
+          <select value={platform} onChange={e => goToPlatform(e.target.value)}>
+            <option value="" disabled>Select</option>
             <option value="navan">Navan</option>
             <option value="concur">Concur</option>
             <option value="expensify">Expensify</option>
           </select>
         </div>
       )}
+
+      {/* Step 2 */}
       {!loading && step === 2 && (
         <div>
-          <button onClick={fetchSampledExpenses}>Load Sampled Expenses</button>
+          <h3>Choose a Transaction</h3>
+          <button onClick={loadExpenses}>Load My Expenses</button>
           {transactions.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <label>Select a transaction:</label>
+            <div style={{ marginTop: 12 }}>
               <select onChange={e => {
-                const txn = transactions.find(t => t.id === e.target.value) || null;
-                setSelectedTxn(txn);
-              }} style={{ marginLeft: 8 }}>
-                <option value="" disabled selected>Select</option>
+                const txn = transactions.find(t => t.id === e.target.value);
+                setSelectedTxn(txn || null);
+              }}>
+                <option value="">Select a transaction</option>
                 {transactions.map(txn => (
                   <option key={txn.id} value={txn.id}>
-                    {(txn.merchant?.name || 'Unknown Merchant') + ' - ' + (txn.merchantAmount || '')}
+                    {(txn.merchant?.name || 'Unknown')} - {txn.merchantAmount}
                   </option>
                 ))}
               </select>
-              <button style={{ marginLeft: 8 }} disabled={!selectedTxn} onClick={() => { setStep(3); if (selectedTxn) fetchExpenseDetails(selectedTxn); }}>Continue</button>
+              <button disabled={!selectedTxn} onClick={fetchDetails} style={{ marginLeft: 8 }}>
+                Next
+              </button>
             </div>
           )}
         </div>
       )}
+
+      {/* Step 3 */}
       {!loading && step === 3 && expenseDetails && (
         <div>
-          <h3>Expense Details</h3>
-          <pre style={{ whiteSpace: 'pre-wrap', background: '#f4f4f4', padding: 8 }}>{JSON.stringify(expenseDetails, null, 2)}</pre>
-          <button onClick={() => { setStep(4); automateExpense(); }}>Automate This Expense</button>
+          <h3>Review Expense</h3>
+          <div style={{ background: '#f5f5f5', padding: 8 }}>
+            <div><strong>Merchant:</strong> {expenseDetails.merchant?.name}</div>
+            <div><strong>Amount:</strong> {expenseDetails.merchantAmount}</div>
+            <div><strong>Date:</strong> {expenseDetails.date}</div>
+            <div><strong>Description:</strong> {expenseDetails.description}</div>
+          </div>
+          <button onClick={automate} style={{ marginTop: 12 }}>Automate This Expense</button>
         </div>
       )}
+
+      {/* Step 4 */}
       {!loading && step === 4 && (
         <div>
-          <h3>Automation Result</h3>
+          <h3>Automation Complete 🎉</h3>
           {automationResult ? (
-            <pre style={{ whiteSpace: 'pre-wrap', background: '#e6ffe6', padding: 8 }}>{JSON.stringify(automationResult, null, 2)}</pre>
+            <pre style={{ background: '#e6ffe6', padding: 8 }}>
+              {JSON.stringify(automationResult, null, 2)}
+            </pre>
           ) : (
             <div>Waiting for result...</div>
           )}
+          <button onClick={() => {
+            setStep(1);
+            setPlatform('');
+            setSelectedTxn(null);
+            setExpenseDetails(null);
+            setAutomationResult(null);
+          }}>Start Over</button>
         </div>
       )}
     </div>

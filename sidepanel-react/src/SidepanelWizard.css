@@ -1,0 +1,68 @@
+.wizard-root {
+  padding: 24px;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  min-width: 340px;
+  background: #f8fafc;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(44,62,80,0.08);
+}
+
+.wizard-header {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+  color: #232526;
+}
+
+.wizard-section {
+  margin-bottom: 1.5rem;
+}
+
+.wizard-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.wizard-select, .wizard-btn, .wizard-input {
+  font-size: 1rem;
+  padding: 0.6em 1em;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+}
+
+.wizard-btn {
+  background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.18s;
+}
+
+.wizard-btn:disabled {
+  background: #b0b0b0;
+  cursor: not-allowed;
+}
+
+.wizard-error {
+  color: #d32f2f;
+  margin-bottom: 1em;
+}
+
+.wizard-success {
+  color: #388e3c;
+  margin-bottom: 1em;
+}
+
+.wizard-back-btn {
+  background: none;
+  color: #0072ff;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 1em;
+  text-decoration: underline;
+}
