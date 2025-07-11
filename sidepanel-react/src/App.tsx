@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import './App.css';
 import LandingPage from './LandingPage';
+import SidepanelWizard from './SidepanelWizard';
+import Dashboard from './Dashboard';
 import './LandingPage.css';
 import './index.css';
-import SidepanelWizard from './SidepanelWizard';
+import './App.css';
+import './Dashboard.css';
+
 
 function App() {
   const [page, setPage] = useState<'landing' | 'wizard' | 'dashboard'>('landing');
@@ -25,13 +28,8 @@ function App() {
     return <SidepanelWizard onBackHome={() => setPage('landing')} />;
   }
   if (page === 'dashboard') {
-    return (
-      <div style={{ padding: 32, textAlign: 'center' }}>
-        <h2>Dashboard (Coming Soon)</h2>
-        <button onClick={() => setPage('landing')}>Back to Home</button>
-      </div>
-    );
-  }
+    return <Dashboard onBackHome={() => setPage('landing')} />;
+  };
   return null;
 }
 
