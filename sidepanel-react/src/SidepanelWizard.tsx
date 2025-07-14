@@ -33,6 +33,8 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
   const [automationResult, setAutomationResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [frequency, setFrequency] = useState('daily');
+  const [submitToday, setSubmitToday] = useState(false);
 
   const goToPlatform = (value: string) => {
     setPlatform(value);
@@ -137,11 +139,12 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
       )}
       {!loading && step === 2 && (
         <div className="wizard-section">
+          <h3 className="wizard-step-title">Select a Transaction</h3>
           {loading ? (
             <div>Loading expenses...</div>
           ) : transactions.length > 0 ? (
             <div style={{ marginTop: 16 }}>
-              <label className="wizard-label">Select a transaction:</label>
+              <label className="wizard-label">Transaction:</label>
               <select className="wizard-select" onChange={e => {
                 const txn = transactions.find(t => t.id === e.target.value) || null;
                 setSelectedTxn(txn);
@@ -153,7 +156,21 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
                   </option>
                 ))}
               </select>
-              <button className="wizard-btn" style={{ marginLeft: 8 }} disabled={!selectedTxn} onClick={() => { setStep(3); if (selectedTxn) fetchDetails(selectedTxn); }}>Continue</button>
+              <label className="wizard-label" style={{ marginTop: 16 }}>Scheduled Frequency:</label>
+              <select className="wizard-select" value={frequency} onChange={e => setFrequency(e.target.value)}>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <div style={{ marginTop: 12 }}>
+                <label className="wizard-checkbox-label">
+                  <input type="checkbox" checked={submitToday} onChange={e => setSubmitToday(e.target.checked)} />
+                  Submit the first expense today (optional)
+                </label>
+              </div>
+              <div className="wizard-btn-center">
+                <button className="wizard-btn" disabled={!selectedTxn} onClick={() => { setStep(3); if (selectedTxn) fetchDetails(selectedTxn); }}>Continue</button>
+              </div>
             </div>
           ) : (
             <div>No transactions found.</div>

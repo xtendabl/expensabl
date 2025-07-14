@@ -21,12 +21,41 @@
 
 .wizard-section {
   margin-bottom: 1.5rem;
+  text-align: left;
+  align-items: flex-start;
+}
+
+.wizard-step-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #232526;
+  margin-bottom: 1rem;
+  letter-spacing: 0.2px;
 }
 
 .wizard-label {
+  font-size: 1.08rem;
   font-weight: 500;
+  color: #232526;
   margin-bottom: 0.5rem;
   display: block;
+}
+
+.wizard-checkbox-label {
+  font-size: 1.08rem;
+  color: #232526 !important;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #0072ff;
+  transform: scale(1.3);
+  margin-right: 8px;
 }
 
 .wizard-select, .wizard-btn, .wizard-input {
@@ -36,6 +65,20 @@
   border: 1px solid #ccc;
   margin-top: 0.5em;
   margin-bottom: 1em;
+}
+
+.wizard-select {
+  background: #fff;
+  color: #232526;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  padding: 0.6em 1em;
+  border-radius: 8px;
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+  max-width: 280px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .wizard-btn {
@@ -50,6 +93,12 @@
 .wizard-btn:disabled {
   background: #b0b0b0;
   cursor: not-allowed;
+}
+
+.wizard-btn-center {
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .wizard-error {
