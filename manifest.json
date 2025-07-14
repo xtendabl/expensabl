@@ -3,7 +3,7 @@
   "name": "Navan Expense Automator",
   "version": "1.0",
   "description": "Automate and schedule Navan expense submissions.",
-  "permissions": ["scripting", "storage", "alarms", "notifications", "webRequest", "sidePanel"],
+  "permissions": ["scripting", "storage", "alarms", "notifications", "webRequest", "sidePanel", "tabs"],
   "host_permissions": ["https://app.navan.com/*"],
   "background": {
     "service_worker": "background.js",

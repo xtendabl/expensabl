@@ -1,10 +1,15 @@
 .wizard-root {
-  padding: 24px;
+  padding: 2px;
   font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
   min-width: 340px;
   background: #f8fafc;
   border-radius: 14px;
   box-shadow: 0 2px 12px rgba(44,62,80,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;      /* keep horizontal centering if desired */
+  justify-content: flex-start; /* align to top */
+  min-height: 100vh;
 }
 
 .wizard-header {
@@ -65,4 +70,64 @@
   cursor: pointer;
   margin-bottom: 1em;
   text-decoration: underline;
+}
+
+.wizard-vertical-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  min-width: 140px;
+}
+
+.wizard-progress-step {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-bottom: 1.2rem;
+}
+
+.wizard-progress-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e3e6ec;
+  color: #232526;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  z-index: 1;
+  border: 2px solid #b0b7c3;
+  transition: background 0.2s, border 0.2s;
+}
+
+.wizard-progress-step.active .wizard-progress-circle {
+  background: #0072ff;
+  color: #fff;
+  border-color: #0072ff;
+}
+
+.wizard-progress-step.completed .wizard-progress-circle {
+  background: #388e3c;
+  color: #fff;
+  border-color: #388e3c;
+}
+
+.wizard-progress-line {
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  width: 2px;
+  height: 32px;
+  background: #b0b7c3;
+  z-index: 0;
+}
+
+.wizard-progress-label {
+  margin-left: 16px;
+  font-size: 1rem;
+  color: #555;
+  font-weight: 500;
 }

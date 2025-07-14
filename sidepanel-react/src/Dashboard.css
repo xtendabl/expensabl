@@ -3,6 +3,10 @@
   font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
   background: linear-gradient(135deg, #f8fafc 0%, #e3e6ec 100%);
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;      /* keep horizontal centering if desired */
+  justify-content: flex-start; /* align to top */
 }
 
 .dashboard-title {

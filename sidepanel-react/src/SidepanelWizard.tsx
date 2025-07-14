@@ -24,8 +24,6 @@ type ExpenseDetails = {
   [key: string]: any;
 };
 
-const TOTAL_STEPS = 4;
-
 const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) => {
   const [step, setStep] = useState(1);
   const [platform, setPlatform] = useState('');
@@ -52,6 +50,8 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
             }, () => {
               setLoading(false);
               setStep(2);
+              // Automatically load expenses after platform is selected and page is ready
+              loadExpenses();
             });
           }
         });
@@ -116,35 +116,12 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
     });
   };
 
-  const renderProgress = () => {
-    const percent = (step / TOTAL_STEPS) * 100;
-    return (
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ height: 8, background: '#eee', borderRadius: 4 }}>
-          <div
-            style={{
-              width: `${percent}%`,
-              height: '100%',
-              background: '#4caf50',
-              borderRadius: 4,
-              transition: 'width 0.3s ease-in-out',
-            }}
-          />
-        </div>
-        <div style={{ fontSize: 12, textAlign: 'right', marginTop: 4 }}>
-          Step {step} of {TOTAL_STEPS}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="wizard-root">
       <h2 className="wizard-header">Expensabl Wizard</h2>
       {onBackHome && (
         <button className="wizard-back-btn" onClick={onBackHome}>&larr; Back Home</button>
       )}
-      {renderProgress()}
       {error && <div className="wizard-error">{error}</div>}
       {loading && <div>Loading...</div>}
       {!loading && step === 1 && (
@@ -160,8 +137,9 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
       )}
       {!loading && step === 2 && (
         <div className="wizard-section">
-          <button className="wizard-btn" onClick={loadExpenses}>Load Sampled Expenses</button>
-          {transactions.length > 0 && (
+          {loading ? (
+            <div>Loading expenses...</div>
+          ) : transactions.length > 0 ? (
             <div style={{ marginTop: 16 }}>
               <label className="wizard-label">Select a transaction:</label>
               <select className="wizard-select" onChange={e => {
@@ -177,6 +155,8 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
               </select>
               <button className="wizard-btn" style={{ marginLeft: 8 }} disabled={!selectedTxn} onClick={() => { setStep(3); if (selectedTxn) fetchDetails(selectedTxn); }}>Continue</button>
             </div>
+          ) : (
+            <div>No transactions found.</div>
           )}
         </div>
       )}

@@ -10,12 +10,17 @@
 
 .landing-card {
   background: rgba(255,255,255,0.95);
-  border-radius: 18px;
+  border-radius: 2px;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
-  padding: 2.5rem 2rem 2rem 2rem;
+  padding: .5rem .5rem .5rem .5rem;
   max-width: 370px;
   text-align: center;
   margin-bottom: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;      /* keep horizontal centering if desired */
+  justify-content: flex-start; /* align to top */
 }
 
 .landing-title {
