@@ -48,13 +48,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  background: none;
 }
 
 .wizard-checkbox-label input[type="checkbox"] {
+  color-scheme: light;
   width: 20px;
   height: 20px;
   accent-color: #0072ff;
-  transform: scale(1.3);
+  background: #fff;
+  border: 1.5px solid #b0b7c3;
+  border-radius: 4px;
+  box-shadow: none;
   margin-right: 8px;
 }
 
