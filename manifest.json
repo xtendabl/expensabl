@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "matches": ["https://app.navan.com/*", "https://www.concursolutions.com/*","https://www.expensify.com/*"],
-      "js": ["content.js"]
+      "js": ["template-manager.js", "content.js"]
     }
   ],
   "icons": {

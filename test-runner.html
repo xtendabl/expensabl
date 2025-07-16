@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Manager Test Runner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .output {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .status.info {
+            background: #e7f3ff;
+            color: #0066cc;
+            border: 1px solid #b3d9ff;
+        }
+        .status.success {
+            background: #e8f5e8;
+            color: #2d7d32;
+            border: 1px solid #a5d6a7;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .test-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .test-result {
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 3px;
+        }
+        .test-result.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        .test-result.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Template Manager Test Runner</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This test runner requires the template-manager.js file to be loaded. 
+            If you're testing in a Chrome extension context, make sure both files are properly loaded.
+        </div>
+
+        <div class="test-controls">
+            <button id="runTests" onclick="runTests()">Run All Tests</button>
+            <button id="clearOutput" onclick="clearOutput()">Clear Output</button>
+            <button id="runManualTest" onclick="runManualTest()">Run Manual Test</button>
+        </div>
+
+        <div id="status" class="status info">
+            Ready to run tests. Click "Run All Tests" to begin.
+        </div>
+
+        <div class="output" id="output">
+Click "Run All Tests" to execute the template manager test suite...
+
+Test Coverage:
+- Template ID generation
+- Template creation and validation
+- Data sanitization
+- Storage integration (mocked)
+- Template-to-expense conversion
+- Name uniqueness checking
+- Storage usage calculation
+- Error handling
+        </div>
+
+        <div id="summary" class="test-summary" style="display: none;">
+            <h3>Test Summary</h3>
+            <div id="summaryContent"></div>
+        </div>
+    </div>
+
+    <script src="template-manager.js"></script>
+    <script src="test-template-manager.js"></script>
+    <script>
+        let output = document.getElementById('output');
+        let status = document.getElementById('status');
+        let summary = document.getElementById('summary');
+        let summaryContent = document.getElementById('summaryContent');
+
+        // Override console.log to capture output
+        const originalLog = console.log;
+        console.log = function(...args) {
+            const message = args.join(' ');
+            output.textContent += message + '\n';
+            output.scrollTop = output.scrollHeight;
+            originalLog.apply(console, args);
+        };
+
+        async function runTests() {
+            const runButton = document.getElementById('runTests');
+            runButton.disabled = true;
+            runButton.textContent = 'Running Tests...';
+            
+            status.className = 'status info';
+            status.textContent = 'Running tests...';
+            
+            output.textContent = '';
+            summary.style.display = 'none';
+
+            try {
+                // Check if TemplateManager is available
+                if (typeof TemplateManager === 'undefined') {
+                    throw new Error('TemplateManager is not defined. Make sure template-manager.js is loaded.');
+                }
+
+                // Run the tests
+                const results = await runTemplateManagerTests();
+                
+                // Update status
+                const passed = results.filter(r => r.status === 'PASS').length;
+                const failed = results.filter(r => r.status === 'FAIL').length;
+                
+                if (failed === 0) {
+                    status.className = 'status success';
+                    status.textContent = `✅ All tests passed! (${passed}/${results.length})`;
+                } else {
+                    status.className = 'status error';
+                    status.textContent = `❌ ${failed} test(s) failed. ${passed} passed.`;
+                }
+
+                // Show summary
+                showSummary(results);
+                
+            } catch (error) {
+                status.className = 'status error';
+                status.textContent = `❌ Error running tests: ${error.message}`;
+                console.log(`❌ Error: ${error.message}`);
+            } finally {
+                runButton.disabled = false;
+                runButton.textContent = 'Run All Tests';
+            }
+        }
+
+        function showSummary(results) {
+            summary.style.display = 'block';
+            summaryContent.innerHTML = '';
+            
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result ${result.status.toLowerCase()}`;
+                div.textContent = `${result.status === 'PASS' ? '✅' : '❌'} ${result.name}`;
+                if (result.error) {
+                    div.textContent += ` - ${result.error}`;
+                }
+                summaryContent.appendChild(div);
+            });
+        }
+
+        function clearOutput() {
+            output.textContent = 'Output cleared...\n';
+            summary.style.display = 'none';
+            status.className = 'status info';
+            status.textContent = 'Ready to run tests.';
+        }
+
+        async function runManualTest() {
+            output.textContent = '';
+            console.log('🔧 Running Manual Test - Template Creation Flow\n');
+            
+            try {
+                // Test 1: Create a sample template
+                console.log('1. Creating sample template...');
+                const sampleData = {
+                    merchant: {
+                        name: "Verizon",
+                        category: "telecommunications",
+                        categoryGroup: "UTILITIES"
+                    },
+                    merchantAmount: 75.50,
+                    merchantCurrency: "USD",
+                    policy: "PHONE",
+                    details: {
+                        participants: [],
+                        description: "Monthly phone bill",
+                        taxDetails: {},
+                        personal: false
+                    },
+                    reportingData: {}
+                };
+                
+                const template = TemplateManager.createTemplate(
+                    "Verizon Phone Bill",
+                    "Monthly Verizon wireless service",
+                    "monthly",
+                    sampleData
+                );
+                
+                console.log('✅ Template created successfully');
+                console.log('Template ID:', template.id);
+                console.log('Template Name:', template.name);
+                
+                // Test 2: Validate the template
+                console.log('\n2. Validating template...');
+                const validation = TemplateManager.validateTemplate(template);
+                if (validation.isValid) {
+                    console.log('✅ Template validation passed');
+                } else {
+                    console.log('❌ Template validation failed:');
+                    validation.errors.forEach(error => console.log('  -', error));
+                }
+                
+                // Test 3: Convert to expense payload
+                console.log('\n3. Converting to expense payload...');
+                const expensePayload = TemplateManager.templateToExpensePayload(template, {
+                    description: "December 2024 bill"
+                });
+                
+                console.log('✅ Expense payload created');
+                console.log('Payload merchant:', expensePayload.merchant.name);
+                console.log('Payload amount:', expensePayload.merchantAmount);
+                console.log('Payload description:', expensePayload.details.description);
+                
+                console.log('\n🎉 Manual test completed successfully!');
+                
+            } catch (error) {
+                console.log('❌ Manual test failed:', error.message);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof TemplateManager === 'undefined') {
+                status.className = 'status error';
+                status.textContent = '❌ TemplateManager not found. Make sure template-manager.js is loaded.';
+            }
+        });
+    </script>
+</body>
+</html>
