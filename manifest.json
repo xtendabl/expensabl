@@ -1,34 +1,35 @@
 {
   "manifest_version": 3,
-  "name": "Navan Expense Automator",
-  "version": "1.0",
-  "description": "Automate and schedule Navan expense submissions.",
-  "permissions": ["scripting", "storage", "alarms", "notifications", "webRequest", "sidePanel"],
-  "host_permissions": ["https://app.navan.com/*"],
+  "name": "expensabl",
+  "version": "1.0.0",
+  "description": "expense automation hub",
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "sidePanel",
+    "webRequest",
+    "notifications",
+    "alarms"
+  ],
+  "icons": {
+    "16": "expensabl-icon.png",
+    "48": "expensabl-icon.png",
+    "128": "expensabl-icon.png"
+  },
+
+  "host_permissions": ["https://app.navan.com/*"],
+  "action": {},
   "side_panel": {
     "default_path": "sidepanel.html"
   },
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icon.png",
-      "48": "icon.png",
-      "128": "icon.png"
-    }
-  },
   "content_scripts": [
     {
-      "matches": ["https://app.navan.com/*", "https://www.concursolutions.com/*","https://www.expensify.com/*"],
+      "matches": ["https://app.navan.com/*"],
       "js": ["content.js"]
     }
-  ],
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
-  }
+  ]
 }

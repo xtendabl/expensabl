@@ -1,0 +1,82 @@
+import { BaseHandler } from '../base-handler';
+import {
+  BackgroundMessage,
+  MessageAction,
+  MessageResponse,
+  HandlerDependencies,
+  createSuccessResponse,
+  createErrorResponse,
+} from '../../types';
+import { ExpenseCreatePayload } from '../../../expenses/types';
+import { ValidationResult } from '../../../templates/types';
+
+interface ValidateExpensePayload {
+  expenseData: ExpenseCreatePayload;
+}
+
+interface ValidateExpenseMessage {
+  action: MessageAction;
+  payload: ValidateExpensePayload;
+}
+
+/**
+ * Handler for validating expense data before creation
+ * Note: This handler is not currently mapped to a MessageAction enum value
+ * TODO: Add VALIDATE_EXPENSE to MessageAction enum if needed
+ */
+export class ValidateExpenseHandler extends BaseHandler<ValidateExpenseMessage> {
+  readonly action = MessageAction.CREATE_EXPENSE; // Using CREATE_EXPENSE as placeholder
+
+  protected validate(message: ValidateExpenseMessage): { isValid: boolean; error?: string } {
+    if (!message.payload || typeof message.payload !== 'object') {
+      return { isValid: false, error: 'Invalid payload' };
+    }
+
+    if (!message.payload.expenseData || typeof message.payload.expenseData !== 'object') {
+      return { isValid: false, error: 'Expense data is required' };
+    }
+
+    // Basic structure validation
+    const { expenseData } = message.payload;
+
+    if (typeof expenseData.merchantAmount !== 'number') {
+      return { isValid: false, error: 'Merchant amount must be a number' };
+    }
+
+    if (typeof expenseData.merchantCurrency !== 'string') {
+      return { isValid: false, error: 'Merchant currency must be a string' };
+    }
+
+    if (typeof expenseData.date !== 'string') {
+      return { isValid: false, error: 'Date must be a string' };
+    }
+
+    if (!expenseData.merchant || typeof expenseData.merchant.name !== 'string') {
+      return { isValid: false, error: 'Merchant name is required' };
+    }
+
+    return { isValid: true };
+  }
+
+  protected async execute(
+    message: ValidateExpenseMessage,
+    sender: chrome.runtime.MessageSender,
+    deps: HandlerDependencies
+  ): Promise<MessageResponse> {
+    deps.logger.info('ValidateExpenseHandler: Validating expense data');
+
+    try {
+      const validationResult = deps.expenseManager.validateExpenseData(message.payload.expenseData);
+
+      deps.logger.info('ValidateExpenseHandler: Validation completed', {
+        isValid: validationResult.isValid,
+        errorCount: validationResult.errors?.length || 0,
+      });
+
+      return createSuccessResponse(validationResult);
+    } catch (error) {
+      deps.logger.error('ValidateExpenseHandler: Validation error', error);
+      return createErrorResponse(error instanceof Error ? error.message : 'Validation failed');
+    }
+  }
+}
