@@ -15,3 +15,5 @@ coverage/
 .idea/
 # Ignore OS generated files
 Thumbs.db  
+.idea
+.claude/settings.local.json

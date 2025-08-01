@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "expensabl",
+  "version": "1.0.0",
+  "description": "expense automation hub",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "sidePanel",
+    "webRequest",
+    "notifications",
+    "alarms"
+  ],
+  "icons": {
+    "16": "expensabl-icon.png",
+    "48": "expensabl-icon.png",
+    "128": "expensabl-icon.png"
+  },
+
+  "host_permissions": ["https://app.navan.com/*"],
+  "action": {},
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.navan.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
