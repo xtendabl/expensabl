@@ -14,7 +14,10 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "sort:imports": "eslint src/**/*.ts --fix",
     "format:fix": "eslint src/**/*.ts --fix && prettier --write \"src/**/*.{ts,js,json}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docs:build": "cd docs && mdbook build",
+    "docs:serve": "cd docs && mdbook serve --open",
+    "docs:watch": "cd docs && mdbook watch --open"
   },
   "repository": {
     "type": "git",

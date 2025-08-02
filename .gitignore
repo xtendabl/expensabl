@@ -3,6 +3,8 @@
 node_modules/
 # Ignore build output directory
 dist/
+# Ignore documentation build output
+docs/book/
 # Ignore log files
 *.log
 # Ignore environment variable files
