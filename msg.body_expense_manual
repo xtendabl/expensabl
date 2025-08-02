@@ -1,0 +1,14 @@
+{"merchantAmount":0,
+  "details":
+    {"participants":[
+      {"uuid":"0d3ed0b9-6688-412d-b23b-682ccb75cd5c",
+      "givenName":"Giovanni",
+      "email":"gio@extendabl.dev",
+      "fullName":"Giovanni Mola",
+      "picture":null,
+      "guest":false,
+      "familyName":"Mola"}
+    ]
+  },
+"merchant":{},
+"date":"2025-07-16"}

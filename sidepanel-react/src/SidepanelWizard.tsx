@@ -169,7 +169,40 @@ const SidepanelWizard: React.FC<{ onBackHome?: () => void }> = ({ onBackHome }) 
                 </label>
               </div>
               <div className="wizard-btn-center">
-                <button className="wizard-btn" disabled={!selectedTxn} onClick={() => { setStep(3); if (selectedTxn) fetchDetails(selectedTxn); }}>Continue</button>
+                <button className="wizard-btn" disabled={!selectedTxn} onClick={() => {
+                  if (selectedTxn) {
+                    if (submitToday) {
+                      // If checkbox is checked, automate immediately
+                      setStep(3); // Optionally show details step, or go straight to automation result
+                      setLoading(true);
+                      setError('');
+                      // Prepare post body from selectedTxn
+                      const postBody = {
+                        merchant: selectedTxn.merchant,
+                        merchantAmount: selectedTxn.merchantAmount,
+                        currency: selectedTxn.currency,
+                        date: selectedTxn.date,
+                        category: selectedTxn.category,
+                        description: selectedTxn.description,
+                      };
+                      console.log('Automating expense with data:', postBody);
+                      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+                        chrome.tabs.sendMessage(tab.id!, { action: 'createExpense', body: postBody }, (response) => {
+                          setLoading(false);
+                          if (response && response.data) {
+                            setAutomationResult(response.data);
+                            setStep(4);
+                          } else {
+                            setError('Failed to automate expense.');
+                          }
+                        });
+                      });
+                    } else {
+                      setStep(3);
+                      fetchDetails(selectedTxn);
+                    }
+                  }
+                }}>Continue</button>
               </div>
             </div>
           ) : (
