@@ -161,13 +161,7 @@ export class ServiceWorkerManager {
                     });
 
                     if (saved) {
-                      // Show notification
-                      chrome.notifications.create({
-                        type: 'basic',
-                        iconUrl: 'expensabl-icon.png',
-                        title: 'Authentication Captured',
-                        message: 'Navan authentication token captured successfully',
-                      });
+                      // Success notification removed - token refresh should be silent
                     } else {
                       logger.warn('WebRequest: Token validation failed', {
                         reason: 'Token format not accepted by validator',
@@ -247,5 +241,40 @@ if (typeof jest === 'undefined' && typeof process === 'undefined') {
   serviceWorkerManager.initialize().catch((err) => {
     error('[SERVICE_WORKER] Failed to initialize service worker', { error: err });
     logger.error('Failed to initialize service worker', { error: err });
+  });
+}
+
+// Handle messages immediately, even before full initialization
+// This prevents race conditions where the sidepanel sends messages before the service worker is ready
+// Only add listener in real Chrome environment, not in tests
+if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // Check if service worker is initialized
+    if (!serviceWorkerManager.isInitialized()) {
+      info('[SERVICE_WORKER] Message received before initialization, waiting for init', {
+        action: (message as Record<string, unknown>)?.action,
+      });
+
+      // Wait for initialization then handle the message
+      serviceWorkerManager
+        .initialize()
+        .then(() => {
+          // Message will be handled by the registered transport listener
+          info('[SERVICE_WORKER] Initialization complete, message will be processed by transport');
+        })
+        .catch((err) => {
+          error('[SERVICE_WORKER] Failed to initialize while handling message', { error: err });
+          sendResponse({
+            success: false,
+            error: 'Service worker initialization failed. Please reload the extension.',
+          });
+        });
+
+      // Return true to indicate async response
+      return true;
+    }
+
+    // If initialized, let the transport handle it normally
+    return false;
   });
 }

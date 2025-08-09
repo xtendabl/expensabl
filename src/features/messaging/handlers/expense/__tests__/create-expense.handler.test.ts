@@ -25,6 +25,7 @@ describe('CreateExpenseHandler', () => {
         scheduleTemplate: jest.fn(),
         cancelTemplateAlarm: jest.fn(),
       } as any,
+      receiptService: {} as any,
     };
 
     mockSender = { id: 'test-sender' } as chrome.runtime.MessageSender;

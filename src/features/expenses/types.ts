@@ -9,6 +9,10 @@ export interface ExpenseFilters extends Record<string, unknown> {
   minAmount?: number;
   maxAmount?: string;
   merchant?: string;
+  // Navan API specific search parameters
+  q?: string; // Query string for merchant name search
+  'authorizationInstant.from'?: string; // ISO 8601 date format
+  'authorizationInstant.to'?: string; // ISO 8601 date format
 }
 
 export interface ExpenseListResponse {
@@ -29,6 +33,7 @@ export interface ExpenseCreatePayload {
     department?: string;
     project?: string;
   };
+  isDraft?: boolean; // When true, expense is created but not submitted
 }
 
 // Alias for the main expense type

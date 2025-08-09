@@ -29,6 +29,7 @@ export interface HttpClient {
   get<T>(path: string, options?: RequestOptions): Promise<T>;
   post<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>;
   patch<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>;
+  delete<T>(path: string, options?: RequestOptions): Promise<T>;
   getWithParams<T>(
     path: string,
     params?: Record<string, unknown>,
@@ -103,6 +104,11 @@ export class ApiHttpClient implements HttpClient {
   async patch<T>(path: string, body: unknown, options: RequestOptions = {}): Promise<T> {
     const url = this.requestBuilder.buildUrl(path);
     return this.makeAuthenticatedRequest<T>(url, HttpMethod.PATCH, { ...options, body });
+  }
+
+  async delete<T>(path: string, options: RequestOptions = {}): Promise<T> {
+    const url = this.requestBuilder.buildUrl(path);
+    return this.makeAuthenticatedRequest<T>(url, HttpMethod.DELETE, options);
   }
 
   async getWithParams<T>(
@@ -335,10 +341,41 @@ export class ApiHttpClient implements HttpClient {
     correlationId: string
   ): Promise<void> {
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: 'Failed to parse error response',
-        status: response.status,
-      }));
+      let errorData: any;
+      let rawResponse: string | undefined;
+
+      // Try to get the raw response text first
+      try {
+        rawResponse = await response.text();
+
+        // Try to parse as JSON
+        try {
+          errorData = rawResponse
+            ? JSON.parse(rawResponse)
+            : {
+                error: 'Empty response',
+                status: response.status,
+              };
+        } catch (parseError) {
+          // Not JSON, log the error context
+          console.error('Non-JSON error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            contentType: response.headers.get('content-type'),
+          });
+
+          errorData = {
+            error: 'Non-JSON error response',
+            status: response.status,
+            contentType: response.headers.get('content-type'),
+          };
+        }
+      } catch (textError) {
+        errorData = {
+          error: 'Failed to read error response',
+          status: response.status,
+        };
+      }
 
       error('ApiHttpClient: API request failed', {
         operationId,
@@ -347,6 +384,7 @@ export class ApiHttpClient implements HttpClient {
         statusText: response.statusText,
         errorMessage: errorData.message || errorData.error || 'Unknown error',
         errorDetails: errorData,
+        rawResponse: rawResponse?.substring(0, 200),
       });
 
       throw new ApiError(

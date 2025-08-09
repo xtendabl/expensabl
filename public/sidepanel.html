@@ -350,6 +350,13 @@
         margin-bottom: 2px;
       }
 
+      .expense-id {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+        font-family: monospace;
+      }
+
       .expense-amount {
         font-weight: 600;
         color: var(--text-primary);
@@ -404,6 +411,18 @@
         }
       }
 
+      .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 123, 255, 0.3);
+        border-top-color: #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+
       .empty-state {
         text-align: center;
         padding: 40px 20px;
@@ -451,6 +470,67 @@
         outline: none;
         border-color: var(--btn-primary-bg);
         box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+      }
+
+      /* Search Section Styles */
+      .expense-search {
+        margin: 15px 0;
+        padding: 15px;
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+      }
+
+      .search-container h4 {
+        margin: 0 0 15px 0;
+        color: var(--text-primary);
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .search-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .search-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .search-group label {
+        min-width: 120px;
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      .search-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--bg-input);
+        color: var(--text-primary);
+        font-size: 14px;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: var(--btn-primary-bg);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+      }
+
+      .search-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+        justify-content: flex-end;
+      }
+
+      .search-actions button {
+        padding: 8px 16px;
       }
 
       /* Responsive design improvements */
@@ -579,6 +659,18 @@
 
       .detail-field:last-child {
         border-bottom: none;
+      }
+
+      .expense-id-field {
+        background-color: var(--bg-hover);
+        padding: 12px;
+        margin: 0 -16px 12px -16px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .expense-id-field .detail-value {
+        font-family: monospace;
+        font-size: 13px;
       }
 
       .detail-label {
@@ -1456,6 +1548,73 @@
       }
 
       /* Help Section Styles */
+      /* Settings Section */
+      .settings-section {
+        margin-bottom: 20px;
+        background-color: var(--bg-card);
+        border-radius: 8px;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
+      .settings-header {
+        padding: 15px 20px;
+        background-color: var(--bg-hover);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background-color 0.2s ease;
+      }
+
+      .settings-header:hover {
+        background-color: var(--bg-hover);
+      }
+
+      .settings-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .settings-toggle {
+        color: var(--text-secondary);
+        transition: transform 0.2s ease;
+      }
+
+      .settings-toggle.expanded {
+        transform: rotate(180deg);
+      }
+
+      .settings-content {
+        padding: 20px;
+        background-color: var(--background-color);
+      }
+
+      .setting-item {
+        margin-bottom: 15px;
+      }
+
+      .setting-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--text-primary);
+      }
+
+      .setting-label input[type="checkbox"] {
+        cursor: pointer;
+      }
+
+      .setting-description {
+        margin-top: 5px;
+        margin-left: 24px;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
       .help-section {
         margin-bottom: 20px;
         background-color: var(--bg-card);
@@ -1678,6 +1837,587 @@
           min-width: 90px;
         }
       }
+
+      /* Modal System Styles */
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0);
+        transition: background-color 0.3s ease;
+        z-index: 10000;
+      }
+
+      .modal-backdrop-visible {
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: var(--bg-card);
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow: auto;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        z-index: 10001;
+      }
+
+      .modal-visible {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      .modal-content {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .modal-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+      }
+
+      .modal-close:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
+      }
+
+      .modal-body {
+        padding: 20px;
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 16px 20px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .modal-button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 80px;
+      }
+
+      .modal-button-primary {
+        background-color: var(--btn-primary-bg);
+        color: white;
+      }
+
+      .modal-button-primary:hover {
+        background-color: var(--btn-primary-hover);
+      }
+
+      .modal-button-secondary {
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
+      }
+
+      .modal-button-secondary:hover {
+        background-color: var(--border-color);
+      }
+
+      .modal-button-danger {
+        background-color: var(--btn-danger-bg);
+        color: white;
+      }
+
+      .modal-button-danger:hover {
+        background-color: var(--btn-danger-hover);
+      }
+
+      .modal-message {
+        margin: 0 0 16px 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .modal-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 14px;
+        background: var(--bg-input);
+        color: var(--text-primary);
+        transition: border-color 0.2s ease;
+      }
+
+      .modal-input:focus {
+        outline: none;
+        border-color: var(--btn-primary-bg);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .modal-error {
+        color: #ef4444;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+
+      .modal-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--border-color);
+        border-top-color: var(--btn-primary-bg);
+        border-radius: 50%;
+        animation: modal-spin 1s linear infinite;
+        margin-bottom: 16px;
+      }
+
+      @keyframes modal-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Authentication Modal Styles */
+      .auth-modal-content {
+        text-align: center;
+        padding: 20px;
+      }
+
+      .auth-modal-icon {
+        margin-bottom: 20px;
+        color: var(--btn-primary-bg);
+      }
+
+      .auth-modal-message h3 {
+        margin: 0 0 12px 0;
+        font-size: 20px;
+        color: var(--text-primary);
+      }
+
+      .auth-modal-message p {
+        margin: 8px 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .auth-modal-instructions {
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+
+      .auth-modal-status {
+        margin: 16px 0;
+        padding: 12px;
+        border-radius: 6px;
+        background-color: var(--bg-hover);
+        font-size: 14px;
+      }
+
+      .auth-modal-error {
+        margin: 16px 0;
+        padding: 12px;
+        border-radius: 6px;
+        background-color: #fee2e2;
+        color: #991b1b;
+        font-size: 14px;
+      }
+
+      .auth-modal-success {
+        color: #059669;
+        font-weight: 500;
+      }
+
+      .auth-modal-warning {
+        color: #d97706;
+      }
+
+      .auth-modal-info {
+        color: var(--btn-primary-bg);
+      }
+
+      .authentication-modal .modal-footer {
+        justify-content: center;
+        gap: 12px;
+      }
+
+      /* Receipt Upload Modal Styles */
+      .receipt-upload-modal-content {
+        text-align: center;
+        padding: 20px;
+      }
+
+      .receipt-upload-icon {
+        margin-bottom: 20px;
+        color: var(--btn-primary-bg);
+      }
+
+      .receipt-upload-message h3 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+        color: var(--text-primary);
+      }
+
+      .receipt-upload-message p {
+        margin: 0 0 20px 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      .receipt-drop-zone {
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        padding: 40px 20px;
+        background-color: var(--bg-secondary);
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .receipt-drop-zone:hover {
+        border-color: var(--btn-primary-bg);
+        background-color: var(--bg-hover);
+      }
+
+      .receipt-drop-zone.drag-over {
+        border-color: var(--btn-primary-bg);
+        background-color: rgba(79, 70, 229, 0.05);
+        transform: scale(1.02);
+      }
+
+      .drop-zone-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .drop-zone-content svg {
+        color: var(--text-muted);
+      }
+
+      .drop-zone-text {
+        font-size: 16px;
+        color: var(--text-primary);
+        margin: 0;
+      }
+
+      .drop-zone-subtext {
+        font-size: 14px;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .select-file-button {
+        padding: 8px 20px;
+        background-color: var(--btn-primary-bg);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .select-file-button:hover {
+        background-color: var(--btn-primary-hover);
+      }
+
+      .drop-zone-formats {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin: 0;
+      }
+
+      .receipt-preview {
+        padding: 16px;
+        background-color: var(--bg-secondary);
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .preview-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .file-icon {
+        color: var(--btn-primary-bg);
+        flex-shrink: 0;
+      }
+
+      .file-info {
+        flex: 1;
+        text-align: left;
+      }
+
+      .file-name {
+        display: block;
+        font-size: 14px;
+        color: var(--text-primary);
+        font-weight: 500;
+        margin-bottom: 4px;
+        word-break: break-all;
+      }
+
+      .file-size {
+        display: block;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .remove-file-btn {
+        padding: 4px 8px;
+        background-color: transparent;
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .remove-file-btn:hover {
+        color: #dc2626;
+        border-color: #dc2626;
+        background-color: #fee2e2;
+      }
+
+      .upload-status {
+        margin: 16px 0;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      .status-message {
+        margin: 0;
+      }
+
+      .status-success {
+        background-color: #d1fae5;
+        color: #059669;
+      }
+
+      .status-error {
+        background-color: #fee2e2;
+        color: #991b1b;
+      }
+
+      .status-info {
+        background-color: var(--bg-hover);
+        color: var(--text-secondary);
+      }
+
+      .receipt-upload-modal .upload-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .receipt-upload-modal .modal-footer {
+        justify-content: space-between;
+      }
+
+      /* Submit vs Draft Modal Styles */
+      .submit-draft-modal-content {
+        text-align: center;
+        padding: 20px;
+      }
+
+      .submit-draft-icon {
+        margin-bottom: 20px;
+        color: var(--btn-primary-bg);
+      }
+
+      .submit-draft-message h3 {
+        margin: 0 0 12px 0;
+        font-size: 20px;
+        color: var(--text-primary);
+      }
+
+      .submit-draft-message p {
+        margin: 8px 0;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .expense-info {
+        background-color: var(--bg-secondary);
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        margin: 12px 0;
+      }
+
+      .submit-options {
+        margin: 24px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .option-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 20px;
+        background-color: var(--bg-secondary);
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: left;
+      }
+
+      .option-card:hover:not(.disabled) {
+        border-color: var(--btn-primary-bg);
+        background-color: var(--bg-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .option-card.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .option-icon {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bg-primary);
+        border-radius: 8px;
+      }
+
+      .submit-option .option-icon {
+        color: #10b981;
+      }
+
+      .draft-option .option-icon {
+        color: #6366f1;
+      }
+
+      .option-content {
+        flex: 1;
+      }
+
+      .option-content h4 {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .option-description {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .option-benefits {
+        margin: 0;
+        padding-left: 20px;
+        list-style: none;
+      }
+
+      .option-benefits li {
+        position: relative;
+        padding-left: 20px;
+        margin: 6px 0;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      .option-benefits li::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: var(--btn-primary-bg);
+      }
+
+      .option-divider {
+        display: flex;
+        align-items: center;
+        margin: 8px 0;
+      }
+
+      .option-divider::before,
+      .option-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background-color: var(--border-color);
+      }
+
+      .option-divider span {
+        padding: 0 16px;
+        font-size: 12px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .submit-draft-modal .modal-footer {
+        justify-content: space-between;
+      }
+
+      .submit-draft-modal .draft-button {
+        background-color: #6366f1;
+        color: white;
+      }
+
+      .submit-draft-modal .draft-button:hover:not(:disabled) {
+        background-color: #4f46e5;
+      }
+
+      .submit-draft-modal .submit-button {
+        background-color: #10b981;
+        color: white;
+      }
+
+      .submit-draft-modal .submit-button:hover:not(:disabled) {
+        background-color: #059669;
+      }
     </style>
   </head>
   <body>
@@ -1707,6 +2447,34 @@
     </div>
 
     <!-- Help Section -->
+    <!-- Settings Section -->
+    <div class="settings-section">
+      <div class="settings-header" id="settingsHeader">
+        <span class="settings-title">Settings</span>
+        <span class="settings-toggle" id="settingsToggle">▼</span>
+      </div>
+      <div class="settings-content" id="settingsContent" style="display: none">
+        <div class="setting-item">
+          <label class="setting-label">
+            <input type="checkbox" id="searchEnabled" checked />
+            <span>Enable Expense Search</span>
+          </label>
+          <div class="setting-description">
+            Show search functionality to filter expenses by merchant name and date range
+          </div>
+        </div>
+        <div class="setting-item">
+          <label class="setting-label">
+            <input type="checkbox" id="autoFetchExpenses" checked />
+            <span>Auto-fetch Expenses on Open</span>
+          </label>
+          <div class="setting-description">
+            Automatically fetch and display expenses when the sidepanel opens
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="help-section">
       <div class="help-header" id="helpHeader">
         <span class="help-title">Help & Getting Started</span>
@@ -1719,7 +2487,7 @@
 
     <div class="expenses-section">
       <div class="expenses-header" id="expensesHeader">
-        <h2 class="expenses-title">Recent Expenses</h2>
+        <h2 class="expenses-title">My Expenses</h2>
         <span class="expenses-toggle" id="expensesToggle">▼</span>
       </div>
       <div class="expenses-content" id="expensesContent">
@@ -1784,6 +2552,47 @@
               >
                 Clear Filters
               </button>
+            </div>
+          </div>
+
+          <!-- Search Section -->
+          <div class="expense-search" id="expenseSearch" style="display: none">
+            <div class="search-container">
+              <h4>Search Expenses</h4>
+              <div class="search-controls">
+                <div class="search-group">
+                  <label for="merchantSearch">Merchant Name:</label>
+                  <input 
+                    type="text" 
+                    id="merchantSearch" 
+                    placeholder="Search by merchant name..."
+                    class="search-input"
+                  />
+                </div>
+                
+                <div class="search-group">
+                  <label for="dateFromSearch">From Date:</label>
+                  <input 
+                    type="date" 
+                    id="dateFromSearch"
+                    class="search-input"
+                  />
+                </div>
+                
+                <div class="search-group">
+                  <label for="dateToSearch">To Date:</label>
+                  <input 
+                    type="date" 
+                    id="dateToSearch"
+                    class="search-input"
+                  />
+                </div>
+                
+                <div class="search-actions">
+                  <button id="performSearch" class="btn btn-primary">Search</button>
+                  <button id="clearSearch" class="btn btn-secondary">Clear</button>
+                </div>
+              </div>
             </div>
           </div>
 

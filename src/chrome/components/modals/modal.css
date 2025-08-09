@@ -1,0 +1,268 @@
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 0.3s ease;
+  z-index: 1000;
+}
+
+.modal-backdrop-visible {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: auto;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 1001;
+}
+
+.modal-visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.modal-body {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.modal-button-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.modal-button-primary:hover {
+  background-color: #2563eb;
+}
+
+.modal-button-secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.modal-button-secondary:hover {
+  background-color: #e5e7eb;
+}
+
+.modal-button-danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+.modal-button-danger:hover {
+  background-color: #dc2626;
+}
+
+.modal-message {
+  margin: 0 0 16px 0;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.confirm-modal-danger .modal-title {
+  color: #991b1b;
+}
+
+.loading-modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.modal-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: modal-spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes modal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.modal-progress {
+  width: 100%;
+  height: 6px;
+  background-color: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.modal-progress-bar {
+  height: 100%;
+  background-color: #3b82f6;
+  transition: width 0.3s ease;
+}
+
+/* Authentication Modal Styles */
+.auth-modal-content {
+  text-align: center;
+  padding: 20px;
+}
+
+.auth-modal-icon {
+  margin-bottom: 20px;
+  color: #3b82f6;
+}
+
+.auth-modal-message h3 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #111827;
+}
+
+.auth-modal-message p {
+  margin: 8px 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.auth-modal-instructions {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.auth-modal-status {
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: 6px;
+  background-color: #f3f4f6;
+  font-size: 14px;
+}
+
+.auth-modal-error {
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: 6px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  font-size: 14px;
+}
+
+.auth-modal-success {
+  color: #059669;
+  font-weight: 500;
+}
+
+.auth-modal-warning {
+  color: #d97706;
+}
+
+.auth-modal-info {
+  color: #2563eb;
+}
+
+.authentication-modal .modal-footer {
+  justify-content: center;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    width: 95%;
+    max-width: none;
+  }
+}

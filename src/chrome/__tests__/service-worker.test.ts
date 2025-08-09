@@ -338,12 +338,8 @@ describe('ServiceWorkerManager', () => {
         'webRequest (https://app.navan.com/api/expenses)'
       );
 
-      expect(mockNotificationsCreate).toHaveBeenCalledWith({
-        type: 'basic',
-        iconUrl: 'expensabl-icon.png',
-        title: 'Authentication Captured',
-        message: 'Navan authentication token captured successfully',
-      });
+      // Notification should not be shown for successful token capture
+      expect(mockNotificationsCreate).not.toHaveBeenCalled();
     });
 
     it('should handle TripActions token format', async () => {
