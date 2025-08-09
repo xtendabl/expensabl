@@ -1,6 +1,7 @@
 import { ExpenseManager } from './manager';
 import { ExpenseCreatePayload, ExpenseFilters, NavanExpenseData } from './types';
 import { ValidationResult } from '../templates/types';
+import { ReceiptUploadResult } from './services/expense-operations';
 
 /**
  * Category information for expense classification
@@ -56,6 +57,16 @@ export interface SearchParams {
  * Extended ExpenseManager with additional functionality for search, categories, and statistics
  */
 export class ExtendedExpenseManager extends ExpenseManager {
+  /**
+   * Get the underlying expense service for direct access to receipt operations
+   */
+  getExpenseService() {
+    if (!this.expenseService) {
+      throw new Error('Expense service not initialized. Please use authAwareExpenseManager.');
+    }
+    return this.expenseService;
+  }
+
   /**
    * Searches expenses based on a text query and optional filters
    *

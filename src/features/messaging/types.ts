@@ -12,6 +12,60 @@ import { SchedulingEngine } from '../templates/scheduling-engine';
 import { chromeLogger as logger } from '../../shared/services/logger/chrome-logger-setup';
 
 // Realistic message actions based on actual service methods
+/**
+ * Receipt operation payloads - simplified inline types
+ */
+export interface ReceiptAttachPayload {
+  expenseId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  data: ArrayBuffer | string; // ArrayBuffer in service worker, base64 string from UI
+  isBase64?: boolean; // Flag to indicate if data is base64 encoded
+}
+
+export interface ReceiptDeletePayload {
+  expenseId: string;
+  receiptKey: string;
+}
+
+export interface ReceiptUrlPayload {
+  receiptKey: string;
+}
+
+/**
+ * Receipt message types - using simplified payload types
+ */
+export interface AttachReceiptMessage {
+  action: MessageAction.ATTACH_RECEIPT;
+  payload: ReceiptAttachPayload;
+}
+
+export interface DeleteReceiptMessage {
+  action: MessageAction.DELETE_RECEIPT;
+  payload: ReceiptDeletePayload;
+}
+
+export interface GetReceiptUrlMessage {
+  action: MessageAction.GET_RECEIPT_URL;
+  payload: ReceiptUrlPayload;
+}
+
+/**
+ * Receipt operation responses
+ */
+export interface ReceiptAttachResponse {
+  receiptKey: string;
+}
+
+export interface ReceiptUrlResponse {
+  url: string;
+}
+
+// Backward compatibility aliases
+export type AttachReceiptPayload = ReceiptAttachPayload;
+export type AttachReceiptResponse = ReceiptAttachResponse;
+
 export enum MessageAction {
   // Token Operations (4 actions) - verified against actual TokenManager methods
   GET_TOKEN = 'getToken', // tokenManager.get(): Promise<string | null>
@@ -19,10 +73,11 @@ export enum MessageAction {
   GET_TOKEN_STATUS = 'getTokenStatus', // combination of get() + isValid()
   SAVE_TOKEN = 'saveToken', // tokenManager.save(token, source): Promise<boolean>
 
-  // Expense Operations (4 actions) - verified against actual ExpenseManager methods
+  // Expense Operations (5 actions) - verified against actual ExpenseManager methods
   FETCH_EXPENSE = 'fetchExpense', // expenseManager.fetchExpense(id): Promise<NavanExpenseData>
   FETCH_EXPENSES = 'fetchExpenses', // expenseManager.fetchExpenses(filters): Promise<ExpenseListResponse>
   CREATE_EXPENSE = 'createExpense', // expenseManager.createExpense(data): Promise<NavanExpenseData>
+  SUBMIT_DRAFT_EXPENSE = 'submitDraftExpense', // expenseManager.submitDraftExpense(id): Promise<NavanExpenseData>
   GET_EXPENSE_CATEGORIES = 'getExpenseCategories', // Get available expense categories
 
   // Template Operations (4 actions) - verified against actual TemplateManager methods
@@ -43,6 +98,11 @@ export enum MessageAction {
   IMPORT_TOKENS = 'importTokens', // Import tokens from JSON
   GET_STATISTICS = 'getStatistics', // Get expense/template statistics
   UPDATE_TEMPLATE_USAGE = 'updateTemplateUsage', // Track manual template usage
+
+  // Receipt Operations
+  ATTACH_RECEIPT = 'attachReceipt', // Attach receipt to expense
+  DELETE_RECEIPT = 'deleteReceipt', // Delete receipt from expense
+  GET_RECEIPT_URL = 'getReceiptUrl', // Get presigned URL for viewing receipt
 }
 
 export type BackgroundMessage =
@@ -55,6 +115,7 @@ export type BackgroundMessage =
   // Expense operations
   | { action: MessageAction.FETCH_EXPENSE; payload: { expenseId: string } }
   | { action: MessageAction.CREATE_EXPENSE; payload: ExpenseCreatePayload }
+  | { action: MessageAction.SUBMIT_DRAFT_EXPENSE; payload: { expenseId: string } }
   | { action: MessageAction.FETCH_EXPENSES; payload?: ExpenseFilters }
   | { action: MessageAction.GET_EXPENSE_CATEGORIES }
 
@@ -81,7 +142,12 @@ export type BackgroundMessage =
   | { action: MessageAction.EXPORT_TOKENS }
   | { action: MessageAction.IMPORT_TOKENS; payload: { tokens: Record<string, string> } }
   | { action: MessageAction.GET_STATISTICS }
-  | { action: MessageAction.UPDATE_TEMPLATE_USAGE; payload: { templateId: string } };
+  | { action: MessageAction.UPDATE_TEMPLATE_USAGE; payload: { templateId: string } }
+
+  // Receipt operations
+  | AttachReceiptMessage
+  | DeleteReceiptMessage
+  | GetReceiptUrlMessage;
 
 export interface MessageResponse<T = unknown> {
   success: boolean;
@@ -108,12 +174,19 @@ export type MessageHandler<T extends BackgroundMessage = BackgroundMessage> = (
  * Handlers receive services through the dependencies parameter:
  *   const token = await deps.tokenManager.get();
  */
+import { ReceiptUploadResult } from '../expenses/services/expense-operations';
+
 export interface HandlerDependencies {
   tokenManager: typeof tokenManager; // Existing singleton instance (export const tokenManager)
   expenseManager: typeof extendedExpenseManager; // Existing singleton instance with extended features
   templateManager: TemplateManager; // Existing singleton (TemplateManager.getInstance())
   logger: typeof logger; // Logger functions (info, error, debug, warn)
   schedulingEngine: SchedulingEngine; // Scheduling engine for managing template alarms
+  receiptService: {
+    uploadReceipt(expenseId: string, formData: FormData): Promise<ReceiptUploadResult>;
+    deleteReceipt(expenseId: string, receiptKey: string): Promise<void>;
+    getReceiptUrl(receiptKey: string): Promise<string>;
+  }; // Receipt service interface (now part of expense manager)
 }
 
 // Type guards for message validation

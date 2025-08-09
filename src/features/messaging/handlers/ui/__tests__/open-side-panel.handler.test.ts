@@ -36,6 +36,7 @@ describe('OpenSidePanelHandler', () => {
         scheduleTemplate: jest.fn(),
         cancelTemplateAlarm: jest.fn(),
       } as any,
+      receiptService: {} as any,
     };
 
     mockSender = {

@@ -25,6 +25,11 @@ describe('GetExpenseStatsHandler', () => {
         scheduleTemplate: jest.fn(),
         cancelTemplateAlarm: jest.fn(),
       } as any,
+      receiptService: {
+        uploadReceipt: jest.fn(),
+        deleteReceipt: jest.fn(),
+        getReceiptUrl: jest.fn(),
+      } as any,
     };
 
     mockSender = { id: 'test-sender' } as chrome.runtime.MessageSender;

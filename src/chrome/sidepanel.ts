@@ -7,7 +7,15 @@ import { SidepanelUI } from './sidepanel-ui';
  * Uses MessageAdapter to bridge between UI messages and our typed backend
  */
 
-// Send message to background script with adapter
+// Retry configuration
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  initialDelay: 100, // ms
+  maxDelay: 2000, // ms
+  backoffFactor: 2,
+};
+
+// Send message to background script with adapter and retry logic
 async function sendMessage(message: Record<string, unknown>): Promise<Record<string, unknown>> {
   // Log all messages being sent
   info('SIDEPANEL_SEND_MESSAGE', {
@@ -16,26 +24,86 @@ async function sendMessage(message: Record<string, unknown>): Promise<Record<str
     timestamp: Date.now(),
   });
 
-  try {
-    // Transform UI message to backend format
-    const backgroundMessage = MessageAdapter.transformRequest(message as unknown as UIMessage);
+  let lastError: Error | unknown;
+  let delay = RETRY_CONFIG.initialDelay;
 
-    if (!backgroundMessage) {
-      throw new Error(`Unknown action: ${message.action}`);
+  for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    try {
+      // Transform UI message to backend format
+      const backgroundMessage = MessageAdapter.transformRequest(message as unknown as UIMessage);
+
+      if (!backgroundMessage) {
+        throw new Error(`Unknown action: ${message.action}`);
+      }
+
+      // Send to background script
+      const response = await chrome.runtime.sendMessage(backgroundMessage);
+
+      // Check for service initialization errors
+      if (!response.success && response.error?.includes('initialization')) {
+        throw new Error('SERVICE_NOT_READY');
+      }
+
+      // Transform response back to UI format
+      return MessageAdapter.transformResponse((message as unknown as UIMessage).action, response);
+    } catch (error) {
+      lastError = error;
+
+      // Check if this is a connection error or service not ready
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isConnectionError =
+        errorMessage.includes('Could not establish connection') ||
+        errorMessage.includes('SERVICE_NOT_READY') ||
+        errorMessage.includes('Receiving end does not exist');
+
+      if (isConnectionError && attempt < RETRY_CONFIG.maxRetries) {
+        info(
+          `SIDEPANEL_RETRY: Attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries}, waiting ${delay}ms`,
+          {
+            action: message.action,
+            error: errorMessage,
+          }
+        );
+
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        // Exponential backoff
+        delay = Math.min(delay * RETRY_CONFIG.backoffFactor, RETRY_CONFIG.maxDelay);
+        continue;
+      }
+
+      // If not a retriable error or max retries reached, break
+      break;
     }
-
-    // Send to background script
-    const response = await chrome.runtime.sendMessage(backgroundMessage);
-
-    // Transform response back to UI format
-    return MessageAdapter.transformResponse((message as unknown as UIMessage).action, response);
-  } catch (error) {
-    logError('Failed to send message:', { error });
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
   }
+
+  // All retries exhausted or non-retriable error
+  logError('Failed to send message after retries:', {
+    error: lastError,
+    action: message.action,
+    retries: RETRY_CONFIG.maxRetries,
+  });
+
+  // Provide more specific error messages
+  const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+  let userFriendlyError = 'Unknown error';
+
+  if (
+    errorMessage.includes('Could not establish connection') ||
+    errorMessage.includes('Receiving end does not exist')
+  ) {
+    userFriendlyError = 'Service temporarily unavailable. Please try again in a moment.';
+  } else if (errorMessage.includes('SERVICE_NOT_READY')) {
+    userFriendlyError = 'Extension is initializing. Please wait a moment and try again.';
+  } else {
+    userFriendlyError = errorMessage;
+  }
+
+  return {
+    success: false,
+    error: userFriendlyError,
+  };
 }
 
 // Make sendMessage available to the existing UI code

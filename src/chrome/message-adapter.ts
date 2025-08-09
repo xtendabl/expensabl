@@ -1,5 +1,9 @@
 import { ExpenseCreatePayload } from '../features/expenses/types';
-import { BackgroundMessage, MessageAction } from '../features/messaging/types';
+import {
+  BackgroundMessage,
+  MessageAction,
+  ReceiptAttachPayload,
+} from '../features/messaging/types';
 import { TemplateExecution, TemplateScheduling } from '../features/templates/types';
 import { info, warn } from '../shared/services/logger/chrome-logger-setup';
 
@@ -7,7 +11,17 @@ export interface UIMessage {
   action: string;
   selectedTxn?: { id: string };
   data?: unknown;
-  payload?: unknown;
+  filters?: Record<string, string>; // For search operations
+  payload?: {
+    expenseId?: string;
+    filename?: string;
+    mimeType?: string;
+    size?: number;
+    data?: ArrayBuffer | string;
+    isBase64?: boolean;
+    receiptKey?: string;
+    [key: string]: unknown;
+  };
   template?: {
     id?: string; // Optional for create operations
     name: string;
@@ -84,26 +98,66 @@ export class MessageAdapter {
 
       // Expense operations
       case 'fetchExpense':
-        if (!uiMessage.selectedTxn?.id) {
-          return null;
+        // Support both selectedTxn.id and direct payload.expenseId
+        if (uiMessage.payload?.expenseId) {
+          return {
+            action: MessageAction.FETCH_EXPENSE,
+            payload: { expenseId: uiMessage.payload.expenseId },
+          };
+        } else if (uiMessage.selectedTxn?.id) {
+          return {
+            action: MessageAction.FETCH_EXPENSE,
+            payload: { expenseId: uiMessage.selectedTxn.id },
+          };
         }
-        return {
-          action: MessageAction.FETCH_EXPENSE,
-          payload: { expenseId: uiMessage.selectedTxn.id },
-        };
+        return null;
 
       case 'getExpenses':
         return {
           action: MessageAction.FETCH_EXPENSES,
         };
 
+      case 'searchExpenses':
+        return {
+          action: MessageAction.FETCH_EXPENSES,
+          payload: uiMessage.filters,
+        };
+
       case 'submitExpense':
-        if (!uiMessage.data) {
+      case 'createExpense':
+        if (!uiMessage.data && !uiMessage.payload) {
           return null;
         }
         return {
           action: MessageAction.CREATE_EXPENSE,
-          payload: uiMessage.data as ExpenseCreatePayload,
+          payload: (uiMessage.data || uiMessage.payload) as ExpenseCreatePayload,
+        };
+
+      case 'attachReceipt':
+        if (!uiMessage.payload) {
+          return null;
+        }
+        return {
+          action: MessageAction.ATTACH_RECEIPT,
+          payload: uiMessage.payload as ReceiptAttachPayload,
+        };
+
+      case 'deleteReceipt':
+        if (!uiMessage.payload) {
+          return null;
+        }
+        return {
+          action: MessageAction.DELETE_RECEIPT,
+          payload: uiMessage.payload as { expenseId: string; receiptKey: string },
+        };
+
+      case 'getReceiptUrl':
+        if (!uiMessage.payload?.receiptKey) {
+          return null;
+        }
+        return {
+          action: MessageAction.GET_RECEIPT_URL,
+          payload: { receiptKey: uiMessage.payload.receiptKey },
         };
 
       // Template operations
@@ -324,6 +378,12 @@ export class MessageAdapter {
         };
 
       case 'getExpenses':
+        return {
+          success: true,
+          expenses: response.data?.items || [],
+        };
+
+      case 'searchExpenses':
         return {
           success: true,
           expenses: response.data?.items || [],

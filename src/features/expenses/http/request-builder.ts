@@ -17,7 +17,8 @@ export class RequestBuilder {
   constructor(private config: ApiConfig) {}
 
   buildUrl(path: string): string {
-    return `${this.config.baseUrl}${path}`;
+    const url = `${this.config.baseUrl}${path}`;
+    return url;
   }
 
   buildUrlWithParams(path: string, params?: Record<string, unknown>): string {
@@ -34,7 +35,8 @@ export class RequestBuilder {
     });
 
     const queryString = searchParams.toString();
-    return queryString ? `${url}?${queryString}` : url;
+    const finalUrl = queryString ? `${url}?${queryString}` : url;
+    return finalUrl;
   }
 
   buildHeaders(token: string, additionalHeaders: HeadersInit = {}): Record<string, string> {
@@ -52,10 +54,15 @@ export class RequestBuilder {
   buildFetchOptions(method: HttpMethod, options: RequestOptions, token: string): RequestInit {
     const { body, headers = {}, timeout = this.config.timeout } = options;
 
-    const requestHeaders = {
-      ...this.buildHeaders(token, headers),
-      ...(this.canHaveBody(method) && body !== undefined && { 'content-type': 'application/json' }),
-    };
+    // Detect FormData automatically - don't set Content-Type for FormData (browser will set it with boundary)
+    const isFormData = body instanceof FormData;
+    const requestHeaders = isFormData
+      ? this.buildHeaders(token, headers)
+      : {
+          ...this.buildHeaders(token, headers),
+          ...(this.canHaveBody(method) &&
+            body !== undefined && { 'content-type': 'application/json' }),
+        };
 
     const fetchOptions: RequestInit = {
       method,
@@ -63,7 +70,8 @@ export class RequestBuilder {
     };
 
     if (this.canHaveBody(method) && body !== undefined) {
-      fetchOptions.body = JSON.stringify(body);
+      // For FormData, pass directly; otherwise JSON stringify
+      fetchOptions.body = isFormData ? (body as BodyInit) : JSON.stringify(body);
     }
 
     const controller = new AbortController();

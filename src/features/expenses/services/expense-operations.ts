@@ -20,6 +20,10 @@ const error = (_message: string, _data?: unknown) => {
   // Development-only error logging
 };
 
+export interface ReceiptUploadResult {
+  receiptKey: string;
+}
+
 export interface ExpenseOperations {
   fetchExpense(expenseId: string): Promise<NavanExpenseData>;
   fetchExpenses(filters?: ExpenseFilters): Promise<ExpenseListResponse>;
@@ -28,6 +32,11 @@ export interface ExpenseOperations {
     expenseId: string,
     updateData: Partial<ExpenseCreatePayload>
   ): Promise<NavanExpenseData>;
+  submitDraftExpense(expenseId: string): Promise<NavanExpenseData>;
+  // Receipt operations
+  uploadReceipt(expenseId: string, formData: FormData): Promise<ReceiptUploadResult>;
+  getReceiptUrl(receiptKey: string): Promise<string>;
+  deleteReceipt(expenseId: string, receiptKey: string): Promise<void>;
 }
 
 /**
@@ -69,10 +78,22 @@ export class ExpenseService implements ExpenseOperations {
 
     const expense = await this.httpClient.get<NavanExpenseData>(`/expenses/${expenseId}`);
 
+    // Log all receipt-related fields to understand the API response structure
+    const receiptFields: Record<string, any> = {};
+    for (const key in expense) {
+      if (key.toLowerCase().includes('receipt')) {
+        receiptFields[key] = (expense as any)[key];
+      }
+    }
+
     info('ExpenseService.fetchExpense: Expense fetched successfully', {
       expenseId,
       status: expense.status,
       amount: expense.merchantAmount,
+      receiptFields,
+      // Also check for any array fields that might contain receipts
+      hasReceiptsArray: !!(expense as any).receipts,
+      receiptsLength: (expense as any).receipts?.length,
     });
 
     return expense;
@@ -113,7 +134,7 @@ export class ExpenseService implements ExpenseOperations {
    * The three-step process ensures data consistency:
    * 1. **Draft creation** - Creates expense in draft state, returns ID
    * 2. **Finalization** - Updates expense with complete data
-   * 3. **Submission** - Moves expense out of draft state
+   * 3. **Submission** - Moves expense out of draft state (skipped if isDraft is true)
    *
    * Each step is timed and logged for performance analysis.
    */
@@ -125,6 +146,7 @@ export class ExpenseService implements ExpenseOperations {
       operationId,
       amount: expenseData.merchantAmount,
       merchant: expenseData.merchant?.name,
+      isDraft: expenseData.isDraft,
       timestamp: Date.now(),
     });
 
@@ -137,6 +159,7 @@ export class ExpenseService implements ExpenseOperations {
       amount: expenseData.merchantAmount,
       currency: expenseData.merchantCurrency,
       merchant: expenseData.merchant?.name,
+      isDraft: expenseData.isDraft,
       operationId,
     });
 
@@ -165,21 +188,32 @@ export class ExpenseService implements ExpenseOperations {
 
       stepTimings.finalization = Math.round(performance.now() - step2Start);
 
-      // Step 3: Submit expense to move it out of draft state
-      debug('ExpenseService.createExpense: Submitting expense', { expenseId });
-      const step3Start = performance.now();
+      let finalExpense: NavanExpenseData;
 
-      const finalExpense = await this.httpClient.post<NavanExpenseData>(
-        `/expenses/${expenseId}/submit`,
-        {}
-      );
+      // Step 3: Submit expense to move it out of draft state (only if not isDraft)
+      if (!expenseData.isDraft) {
+        debug('ExpenseService.createExpense: Submitting expense', { expenseId });
+        const step3Start = performance.now();
 
-      stepTimings.submission = Math.round(performance.now() - step3Start);
+        finalExpense = await this.httpClient.post<NavanExpenseData>(
+          `/expenses/${expenseId}/submit`,
+          {}
+        );
+
+        stepTimings.submission = Math.round(performance.now() - step3Start);
+      } else {
+        // If isDraft is true, fetch the current state of the expense
+        debug('ExpenseService.createExpense: Keeping expense in draft state', { expenseId });
+        finalExpense = await this.httpClient.get<NavanExpenseData>(`/expenses/${expenseId}`);
+        stepTimings.submission = 0; // No submission step for drafts
+      }
+
       const totalTime = Math.round(performance.now() - operationStart);
 
       info('ExpenseService.createExpense: Expense created successfully', {
         expenseId,
         status: finalExpense.status,
+        isDraft: expenseData.isDraft || false,
         operationId: 'create-expense',
         timing: {
           total: totalTime,
@@ -187,7 +221,9 @@ export class ExpenseService implements ExpenseOperations {
           breakdown: {
             draft_creation_pct: Math.round((stepTimings.draft_creation / totalTime) * 100),
             finalization_pct: Math.round((stepTimings.finalization / totalTime) * 100),
-            submission_pct: Math.round((stepTimings.submission / totalTime) * 100),
+            submission_pct: stepTimings.submission
+              ? Math.round((stepTimings.submission / totalTime) * 100)
+              : 0,
           },
         },
         performance: {
@@ -240,6 +276,32 @@ export class ExpenseService implements ExpenseOperations {
     return updatedExpense;
   }
 
+  /**
+   * Submits a draft expense to move it out of draft state.
+   *
+   * @param expenseId - The ID of the draft expense to submit
+   * @returns Promise resolving to the submitted expense
+   * @throws {ValidationError} If expense ID is invalid
+   * @throws {ApiError} If submission fails
+   */
+  async submitDraftExpense(expenseId: string): Promise<NavanExpenseData> {
+    debug('ExpenseService.submitDraftExpense: Submitting draft expense', { expenseId });
+
+    ExpenseValidator.validateExpenseId(expenseId);
+
+    const submittedExpense = await this.httpClient.post<NavanExpenseData>(
+      `/expenses/${expenseId}/submit`,
+      {}
+    );
+
+    info('ExpenseService.submitDraftExpense: Draft expense submitted successfully', {
+      expenseId,
+      status: submittedExpense.status,
+    });
+
+    return submittedExpense;
+  }
+
   // Documenting due to complex response format detection logic
   /**
    * Determines the format of API responses to handle different Navan API versions.
@@ -285,5 +347,78 @@ export class ExpenseService implements ExpenseOperations {
     }
 
     return 'unknown';
+  }
+
+  /**
+   * Upload a receipt for an expense
+   */
+  async uploadReceipt(expenseId: string, formData: FormData): Promise<ReceiptUploadResult> {
+    const response = await this.httpClient.post<any>(`/expenses/${expenseId}/receipt`, formData);
+
+    return this.extractReceiptData(response);
+  }
+
+  /**
+   * Extract receipt data from response
+   */
+  private extractReceiptData(response: any): ReceiptUploadResult {
+    const receiptKey = response?.data?.receiptKey || response?.receiptKey;
+
+    if (!receiptKey) {
+      throw new Error('No receipt key found in response');
+    }
+
+    return {
+      receiptKey,
+    };
+  }
+
+  /**
+   * Get receipt URL for viewing
+   * Fetches the presigned S3 URL from the Navan API
+   */
+  async getReceiptUrl(receiptKey: string): Promise<string> {
+    // The HTTP client adds /user prefix, so we only need /download path
+    // This will result in the correct URL: /api/liquid/user/download
+    const encodedKey = encodeURIComponent(receiptKey);
+
+    const path = '/download';
+    const params = { fileKey: receiptKey, inline: true };
+
+    try {
+      // Call the API to get the presigned URL
+      // The API returns a JSON object with the presigned S3 URL
+      const response = await this.httpClient.getWithParams<{ url: string }>(path, params);
+
+      if (!response || !response.url) {
+        console.error('[RECEIPT_SERVICE] Invalid response - missing URL:', response);
+        throw new Error('No URL in response');
+      }
+
+      info('Receipt presigned URL fetched:', { receiptKey, url: response.url });
+
+      // Return the presigned S3 URL
+      return response.url;
+    } catch (err) {
+      console.error('[RECEIPT_SERVICE] Failed to get presigned URL:', {
+        receiptKey,
+        error: err,
+        errorMessage: err instanceof Error ? err.message : 'Unknown error',
+        errorStack: err instanceof Error ? err.stack : undefined,
+      });
+
+      error('Failed to get presigned URL:', { receiptKey, error: err });
+
+      // Fallback to the direct download URL
+      const fallbackUrl = `https://app.navan.com/api/liquid/user/download?fileKey=${encodedKey}&inline=true`;
+      return fallbackUrl;
+    }
+  }
+
+  /**
+   * Delete a receipt from an expense
+   */
+  async deleteReceipt(expenseId: string, receiptKey: string): Promise<void> {
+    await this.httpClient.delete(`/expenses/${expenseId}/receipt`);
   }
 }

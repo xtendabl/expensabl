@@ -32,7 +32,7 @@ import {
  * ```
  */
 class ExpenseManager {
-  private readonly expenseService: ExpenseService;
+  protected readonly expenseService: ExpenseService;
 
   /**
    * Creates a new ExpenseManager instance.
@@ -166,6 +166,38 @@ class ExpenseManager {
     updateData: Partial<ExpenseCreatePayload>
   ): Promise<NavanExpenseData> {
     return this.expenseService.updateExpense(expenseId, updateData);
+  }
+
+  /**
+   * Submits a draft expense to move it out of draft state.
+   * Use this method when you've created an expense with isDraft: true
+   * and now want to submit it for approval.
+   *
+   * @param expenseId - The ID of the draft expense to submit
+   * @returns Promise that resolves to the submitted expense
+   * @throws {ValidationError} When expense ID is missing or invalid
+   * @throws {AuthenticationError} When authentication token is missing or invalid
+   * @throws {ApiError} When submission fails (e.g., expense not in draft state)
+   * @throws {TimeoutError} When the request times out
+   * @throws {NetworkError} When network connectivity issues occur
+   *
+   * @example
+   * ```typescript
+   * // Create expense as draft
+   * const draftExpense = await expenseManager.createExpense({
+   *   merchantAmount: 100.00,
+   *   merchantCurrency: 'USD',
+   *   date: '2024-01-15',
+   *   merchant: { name: 'Store ABC' },
+   *   isDraft: true
+   * });
+   *
+   * // Later, submit the draft
+   * const submittedExpense = await expenseManager.submitDraftExpense(draftExpense.id);
+   * ```
+   */
+  public async submitDraftExpense(expenseId: string): Promise<NavanExpenseData> {
+    return this.expenseService.submitDraftExpense(expenseId);
   }
 }
 

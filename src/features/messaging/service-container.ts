@@ -29,6 +29,17 @@ export class ServiceContainer implements IServiceContainer {
   readonly logger = logger;
   readonly schedulingEngine: SchedulingEngine;
 
+  // Receipt service is now part of expense service, provide direct access
+  get receiptService(): any {
+    // Return the expense service which has receipt methods
+    const expenseService = this.expenseManager.getExpenseService();
+    return {
+      uploadReceipt: expenseService.uploadReceipt.bind(expenseService),
+      deleteReceipt: expenseService.deleteReceipt.bind(expenseService),
+      getReceiptUrl: expenseService.getReceiptUrl.bind(expenseService),
+    };
+  }
+
   constructor() {
     // Initialize scheduling engine with the template manager
     this.schedulingEngine = getSchedulingEngine(this.templateManager);

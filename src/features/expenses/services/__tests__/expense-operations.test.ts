@@ -17,6 +17,8 @@ describe('ExpenseService', () => {
       get: jest.fn(),
       post: jest.fn(),
       patch: jest.fn(),
+      delete: jest.fn(),
+      postMultipart: jest.fn(),
       getWithParams: jest.fn(),
     } as jest.Mocked<HttpClient>;
 

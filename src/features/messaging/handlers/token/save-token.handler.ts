@@ -43,13 +43,7 @@ export class SaveTokenHandler extends BaseHandler<
           tokenPreview: token.substring(0, 20) + '...',
         });
 
-        // Show notification to user
-        chrome.notifications.create({
-          type: 'basic',
-          iconUrl: 'expensabl-icon.png',
-          title: 'Authentication Successful',
-          message: 'Navan authentication token captured. You can now use the expense features.',
-        });
+        // Success notification removed - token refresh should be silent
 
         return createSuccessResponse({ saved: true });
       } else {

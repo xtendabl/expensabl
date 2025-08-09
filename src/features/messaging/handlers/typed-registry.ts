@@ -11,11 +11,13 @@ import { ImportTokensHandler } from './token/import-tokens.handler';
 import { GetStatisticsHandler } from './token/get-statistics.handler';
 import { OpenSidePanelHandler } from './ui/open-side-panel.handler';
 import { CreateExpenseHandler } from './expense/create-expense.handler';
+import { SubmitDraftExpenseHandler } from './expense/submit-draft-expense.handler';
 import { FetchExpenseHandler } from './expense/fetch-expense.handler';
 import { FetchExpensesHandler } from './expense/fetch-expenses.handler';
 import { SearchExpensesHandler } from './expense/search-expenses.handler';
 import { GetCategoriesHandler } from './expense/get-categories.handler';
 import { GetExpenseStatsHandler } from './expense/get-expense-stats.handler';
+import { ReceiptOperationsHandler } from './expense/receipt-operations.handler';
 // import { ValidateExpenseHandler } from './expense/validate-expense.handler';
 import { ListTemplatesHandler } from './template/list-templates.handler';
 import { CreateTemplateHandler } from './template/create-template.handler';
@@ -58,11 +60,16 @@ export class TypedHandlerRegistry {
 
     // Expense handlers
     this.register(new CreateExpenseHandler());
+    this.register(new SubmitDraftExpenseHandler());
     this.register(new FetchExpenseHandler());
     this.register(new FetchExpensesHandler());
     this.register(new SearchExpensesHandler());
     this.register(new GetCategoriesHandler());
     this.register(new GetExpenseStatsHandler());
+    // Receipt handlers (unified)
+    this.register(ReceiptOperationsHandler.createAttachReceiptHandler());
+    this.register(ReceiptOperationsHandler.createDeleteReceiptHandler());
+    this.register(ReceiptOperationsHandler.createGetReceiptUrlHandler());
     // TODO: ValidateExpenseHandler needs a proper MessageAction mapping
     // this.register(new ValidateExpenseHandler());
 
