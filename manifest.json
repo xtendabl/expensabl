@@ -16,9 +16,10 @@
     "alarms"
   ],
   "icons": {
-    "16": "expensabl-icon.png",
-    "48": "expensabl-icon.png",
-    "128": "expensabl-icon.png"
+    "16": "expensabl-icon16.png",
+    "32": "expensabl-icon32.png",
+    "48": "expensabl-icon48.png",
+    "128": "expensabl-icon128.png"
   },
 
   "host_permissions": ["https://app.navan.com/*"],
