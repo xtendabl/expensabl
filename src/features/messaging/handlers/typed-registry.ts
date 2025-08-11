@@ -18,6 +18,7 @@ import { SearchExpensesHandler } from './expense/search-expenses.handler';
 import { GetCategoriesHandler } from './expense/get-categories.handler';
 import { GetExpenseStatsHandler } from './expense/get-expense-stats.handler';
 import { ReceiptOperationsHandler } from './expense/receipt-operations.handler';
+import { TestApiParametersHandler } from './expense/test-api-parameters.handler';
 // import { ValidateExpenseHandler } from './expense/validate-expense.handler';
 import { ListTemplatesHandler } from './template/list-templates.handler';
 import { CreateTemplateHandler } from './template/create-template.handler';
@@ -70,6 +71,10 @@ export class TypedHandlerRegistry {
     this.register(ReceiptOperationsHandler.createAttachReceiptHandler());
     this.register(ReceiptOperationsHandler.createDeleteReceiptHandler());
     this.register(ReceiptOperationsHandler.createGetReceiptUrlHandler());
+
+    // Testing handlers
+    this.register(new TestApiParametersHandler());
+
     // TODO: ValidateExpenseHandler needs a proper MessageAction mapping
     // this.register(new ValidateExpenseHandler());
 

@@ -8,7 +8,11 @@ import {
   searchTransactionToCreatePayload,
 } from '../features/expenses/mappers/search-transaction-mapper';
 import { FieldConfigurationService } from '../features/expenses/services/field-configuration-service';
-import { ExpenseCreatePayload, SearchTransaction } from '../features/expenses/types';
+import {
+  ExpenseCreatePayload,
+  ExpenseFilters,
+  SearchTransaction,
+} from '../features/expenses/types';
 import { ScheduleCalculator } from '../features/templates/scheduler';
 import { ExpenseTemplate, TemplateScheduling } from '../features/templates/types';
 
@@ -206,28 +210,60 @@ export class SidepanelUI {
       refreshBtn.addEventListener('click', () => void this.handleFetchExpenses());
     }
 
-    // Search functionality
-    const performSearchBtn = document.getElementById('performSearch');
-    if (performSearchBtn) {
-      performSearchBtn.addEventListener('click', () => void this.handlePerformSearch());
+    // Export expenses button
+    const exportBtn = document.getElementById('exportExpenses');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => void this.handleExportExpenses());
     }
 
-    const clearSearchBtn = document.getElementById('clearSearch');
-    if (clearSearchBtn) {
-      clearSearchBtn.addEventListener('click', () => void this.handleClearSearch());
+    // Unified search input
+    const unifiedSearchInput = document.getElementById('unifiedSearch') as HTMLInputElement;
+    if (unifiedSearchInput) {
+      // Debounce search for better performance
+      let searchTimeout: NodeJS.Timeout;
+      unifiedSearchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          void this.handleUnifiedSearch();
+        }, 300);
+      });
+
+      unifiedSearchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          clearTimeout(searchTimeout);
+          void this.handleUnifiedSearch();
+        }
+      });
     }
 
-    // Add enter key support for search inputs
-    const merchantSearchInput = document.getElementById('merchantSearch') as HTMLInputElement;
+    // Advanced filters toggle
+    const advancedToggle = document.getElementById('advancedToggle');
+    if (advancedToggle) {
+      advancedToggle.addEventListener('click', () => {
+        this.toggleAdvancedFilters();
+      });
+    }
+
+    // Advanced filter inputs for real-time updates
     const dateFromInput = document.getElementById('dateFromSearch') as HTMLInputElement;
     const dateToInput = document.getElementById('dateToSearch') as HTMLInputElement;
 
-    [merchantSearchInput, dateFromInput, dateToInput].forEach((input) => {
+    [dateFromInput, dateToInput].forEach((input) => {
       if (input) {
-        input.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') {
-            void this.handlePerformSearch();
-          }
+        input.addEventListener('change', () => {
+          void this.handleUnifiedSearch();
+        });
+      }
+    });
+
+    // Add event listeners for dropdowns in advanced filters
+    const dateRangePicker = document.getElementById('dateRangePicker') as HTMLSelectElement;
+    const statusSelect = document.getElementById('expenseStatus') as HTMLSelectElement;
+
+    [dateRangePicker, statusSelect].forEach((select) => {
+      if (select) {
+        select.addEventListener('change', () => {
+          void this.handleUnifiedSearch();
         });
       }
     });
@@ -255,19 +291,9 @@ export class SidepanelUI {
       itemsPerPage.addEventListener('change', () => this.handlePaginationChange());
     }
 
-    const merchantCategory = document.getElementById('merchantCategory') as HTMLSelectElement;
-    if (merchantCategory) {
-      merchantCategory.addEventListener('change', () => this.handleFilterChange());
-    }
-
-    const expenseStatus = document.getElementById('expenseStatus') as HTMLSelectElement;
-    if (expenseStatus) {
-      expenseStatus.addEventListener('change', () => this.handleFilterChange());
-    }
-
     const clearFilters = document.getElementById('clearFilters');
     if (clearFilters) {
-      clearFilters.addEventListener('click', () => this.handleClearFilters());
+      clearFilters.addEventListener('click', () => void this.handleClearAllFilters());
     }
   }
 
@@ -399,19 +425,26 @@ export class SidepanelUI {
     await this.handleFetchExpenses();
   }
 
-  private async handleFetchExpenses(): Promise<void> {
-    info('SidepanelUI: handleFetchExpenses called');
+  private async handleFetchExpenses(filters?: ExpenseFilters): Promise<void> {
+    info('SidepanelUI: handleFetchExpenses called', { filters });
 
     const fetchBtn = document.getElementById('fetchExpenses') as HTMLButtonElement;
     const refreshBtn = document.getElementById('refreshExpenses') as HTMLButtonElement;
     const status = document.getElementById('expensesStatus');
+    const initialStatus = document.getElementById('initialStatus');
     const list = document.getElementById('expensesList');
-    const controls = document.getElementById('expenseControls');
-    const searchSection = document.getElementById('expenseSearch');
+    const _controls = document.getElementById('expenseControls');
+    const _searchSection = document.getElementById('expenseSearch');
+    const resultsContainer = document.getElementById('resultsContainer');
 
     if (!status) {
       error('SidepanelUI: Expenses status element not found');
       return;
+    }
+
+    // Hide initial status message once we start fetching
+    if (initialStatus) {
+      initialStatus.style.display = 'none';
     }
 
     // First check authentication status
@@ -431,7 +464,7 @@ export class SidepanelUI {
           sendMessage: this.sendMessage,
           onAuthenticated: async () => {
             // Retry fetching expenses after successful authentication
-            await this.handleFetchExpenses();
+            await this.handleFetchExpenses(filters);
           },
           onCancel: () => {
             info('SidepanelUI: Authentication cancelled by user');
@@ -451,12 +484,13 @@ export class SidepanelUI {
     status.innerHTML = '<span class="loading-spinner"></span>Fetching expenses...';
     status.className = 'expenses-status';
 
-    info('SidepanelUI: Sending getExpenses message');
+    info('SidepanelUI: Sending getExpenses message with filters');
 
     try {
-      // Fetch all expenses without filters (API doesn't support them)
+      // Pass filters to the service worker
       const response = await this.sendMessage({
         action: 'getExpenses',
+        filters: filters || {},
       });
 
       if (response.success && response.expenses) {
@@ -467,17 +501,11 @@ export class SidepanelUI {
         status.className = 'expenses-status success';
 
         // Show UI elements
-        if (fetchBtn) fetchBtn.style.display = 'none';
         if (refreshBtn) refreshBtn.style.display = 'inline-block';
         if (list) list.style.display = 'block';
-        if (controls) controls.style.display = 'flex';
+        if (resultsContainer) resultsContainer.style.display = 'flex';
 
-        // Show search section based on settings
-        if (searchSection) {
-          const result = await chrome.storage.local.get('expenseSearchEnabled');
-          const isSearchEnabled = result.expenseSearchEnabled !== false; // Default to true
-          searchSection.style.display = isSearchEnabled ? 'block' : 'none';
-        }
+        // Note: controls and searchSection are from the old UI, not needed in new design
 
         // Render expenses
         this.renderExpenses();
@@ -488,7 +516,7 @@ export class SidepanelUI {
     } catch (err) {
       status.textContent = 'Error fetching expenses';
       status.className = 'expenses-status error';
-      error('Failed to fetch expenses:', { error: err });
+      error('SidepanelUI: Fetch expenses error:', { error: err });
     } finally {
       this.setLoading(false);
       if (fetchBtn) fetchBtn.disabled = false;
@@ -496,9 +524,55 @@ export class SidepanelUI {
     }
   }
 
+  private async fetchExpensesWithFilters(filters: ExpenseFilters): Promise<void> {
+    // Delegate to handleFetchExpenses with filters
+    await this.handleFetchExpenses(filters);
+  }
+
+  private getDateRangeFromPreset(preset: string): { from: string; to: string } | null {
+    const today = new Date();
+    const formatDate = (date: Date): string => {
+      return date.toISOString().split('T')[0];
+    };
+
+    switch (preset) {
+      case 'last30': {
+        const from = new Date();
+        from.setDate(from.getDate() - 30);
+        return { from: formatDate(from), to: formatDate(today) };
+      }
+      case 'thisMonth': {
+        const from = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { from: formatDate(from), to: formatDate(today) };
+      }
+      case 'lastMonth': {
+        const from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const to = new Date(today.getFullYear(), today.getMonth(), 0);
+        return { from: formatDate(from), to: formatDate(to) };
+      }
+      case 'last3Months': {
+        const from = new Date();
+        from.setMonth(from.getMonth() - 3);
+        return { from: formatDate(from), to: formatDate(today) };
+      }
+      case 'thisYear': {
+        const from = new Date(today.getFullYear(), 0, 1);
+        return { from: formatDate(from), to: formatDate(today) };
+      }
+      default:
+        return null;
+    }
+  }
+
   private renderExpenses(): void {
     const list = document.getElementById('expensesList');
     if (!list || !this.state.expenses.length) return;
+
+    // Show results container
+    const resultsContainer = document.getElementById('resultsContainer');
+    if (resultsContainer) {
+      resultsContainer.style.display = 'flex';
+    }
 
     // Get filter values
     const statusFilter = (document.getElementById('expenseStatus') as HTMLSelectElement)?.value;
@@ -507,7 +581,8 @@ export class SidepanelUI {
     const itemsPerPage = parseInt(
       (document.getElementById('itemsPerPage') as HTMLSelectElement)?.value || '20'
     );
-    const sortOrder = (document.getElementById('sortOrder') as HTMLSelectElement)?.value;
+    const sortOrder =
+      (document.getElementById('sortOrder') as HTMLSelectElement)?.value || 'date-desc';
 
     // Filter expenses
     let filteredExpenses = [...this.state.expenses];
@@ -2214,8 +2289,162 @@ export class SidepanelUI {
     this.renderExpenses();
   }
 
+  private async handleUnifiedSearch(): Promise<void> {
+    const unifiedSearchInput = document.getElementById('unifiedSearch') as HTMLInputElement;
+    const searchQuery = unifiedSearchInput?.value.trim() || '';
+
+    // Build filters for API request
+    const filters: ExpenseFilters = {};
+
+    // Use the 'q' parameter for merchant search
+    if (searchQuery) {
+      filters.q = searchQuery;
+    }
+
+    // Check if advanced filters are visible
+    const advancedFilters = document.getElementById('advancedFilters');
+    if (advancedFilters && advancedFilters.classList.contains('open')) {
+      // Add date range filter if selected
+      const dateRangePicker = document.getElementById('dateRangePicker') as HTMLSelectElement;
+      if (
+        dateRangePicker?.value &&
+        dateRangePicker.value !== 'custom' &&
+        dateRangePicker.value !== ''
+      ) {
+        const dateRange = this.getDateRangeFromPreset(dateRangePicker.value);
+        if (dateRange) {
+          filters.dateFrom = dateRange.from;
+          filters.dateTo = dateRange.to;
+        }
+      }
+
+      // Add custom date range if specified
+      const dateFromInput = document.getElementById('dateFromSearch') as HTMLInputElement;
+      const dateToInput = document.getElementById('dateToSearch') as HTMLInputElement;
+      if (dateFromInput?.value) {
+        filters.dateFrom = dateFromInput.value;
+      }
+      if (dateToInput?.value) {
+        filters.dateTo = dateToInput.value;
+      }
+
+      // Add status filter if selected
+      const statusSelect = document.getElementById('expenseStatus') as HTMLSelectElement;
+      if (statusSelect?.value) {
+        filters.status = statusSelect.value;
+      }
+    }
+
+    // Update search state
+    this.state.searchActive = searchQuery.length > 0;
+    this.state.searchFilters = filters;
+
+    // Make API call with filters
+    await this.fetchExpensesWithFilters(filters);
+  }
+
+  private toggleAdvancedFilters(): void {
+    const advancedFilters = document.getElementById('advancedFilters');
+    const advancedToggle = document.getElementById('advancedToggle');
+
+    if (advancedFilters && advancedToggle) {
+      const isOpen = advancedFilters.classList.contains('open');
+
+      if (isOpen) {
+        advancedFilters.classList.remove('open');
+        advancedToggle.classList.remove('active');
+        advancedToggle.innerHTML = '<span style="margin-right: 4px;">⚙️</span> More filters';
+      } else {
+        advancedFilters.classList.add('open');
+        advancedToggle.classList.add('active');
+        advancedToggle.innerHTML = '<span style="margin-right: 4px;">⚙️</span> Hide filters';
+      }
+    }
+  }
+
+  private async handleExportExpenses(): Promise<void> {
+    // Export functionality - can be implemented to export to CSV/JSON
+    info('Export expenses requested');
+
+    if (this.state.expenses.length === 0) {
+      this.showToast('No expenses to export', 'error');
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Date', 'Merchant', 'Amount', 'Currency', 'Category', 'Status', 'ID'];
+    const rows = this.state.expenses.map((expense) => {
+      const displayData = getSearchTransactionDisplayData(expense);
+      return [
+        new Date(displayData.date).toLocaleDateString(),
+        displayData.merchant,
+        displayData.amount.toFixed(2),
+        displayData.currency,
+        displayData.category || 'Uncategorized',
+        displayData.status || 'Unknown',
+        displayData.id,
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+    ].join('\\n');
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expenses_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    this.showToast('Expenses exported successfully', 'success');
+  }
+
+  private async handleClearAllFilters(): Promise<void> {
+    // Clear all filter inputs
+    const unifiedSearch = document.getElementById('unifiedSearch') as HTMLInputElement;
+    const dateRangePicker = document.getElementById('dateRangePicker') as HTMLSelectElement;
+    const merchantCategory = document.getElementById('merchantCategory') as HTMLSelectElement;
+    const expenseStatus = document.getElementById('expenseStatus') as HTMLSelectElement;
+
+    // Clear advanced filters
+    const merchantSearch = document.getElementById('merchantSearch') as HTMLInputElement;
+    const amountRange = document.getElementById('amountRange') as HTMLInputElement;
+    const descriptionSearch = document.getElementById('descriptionSearch') as HTMLInputElement;
+    const transactionIdSearch = document.getElementById('transactionIdSearch') as HTMLInputElement;
+    const dateFromSearch = document.getElementById('dateFromSearch') as HTMLInputElement;
+    const dateToSearch = document.getElementById('dateToSearch') as HTMLInputElement;
+
+    if (unifiedSearch) unifiedSearch.value = '';
+    if (dateRangePicker) dateRangePicker.value = 'last30';
+    if (merchantCategory) merchantCategory.value = '';
+    if (expenseStatus) expenseStatus.value = '';
+
+    if (merchantSearch) merchantSearch.value = '';
+    if (amountRange) amountRange.value = '';
+    if (descriptionSearch) descriptionSearch.value = '';
+    if (transactionIdSearch) transactionIdSearch.value = '';
+    if (dateFromSearch) dateFromSearch.value = '';
+    if (dateToSearch) dateToSearch.value = '';
+
+    // Reset state
+    this.state.searchActive = false;
+    this.state.searchFilters = {};
+
+    // Refresh the list
+    await this.handleFetchExpenses();
+  }
+
   private setLoading(loading: boolean): void {
     this.state.isLoading = loading;
+  }
+
+  private updateExpenseList(): void {
+    // Wrapper method for renderExpenses to maintain consistency
+    this.renderExpenses();
   }
 
   private initializeCollapsibleSections(): void {

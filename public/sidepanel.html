@@ -269,6 +269,8 @@
 
       .expenses-container {
         margin-bottom: 15px;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .expense-actions {
@@ -472,68 +474,222 @@
         box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
       }
 
-      /* Search Section Styles */
-      .expense-search {
-        margin: 15px 0;
-        padding: 15px;
-        background-color: var(--card-bg);
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
+      /* Enhanced Search Bar Styles */
+      .search-container {
+        position: relative;
+        margin-bottom: 20px;
+        width: 100%;
+        box-sizing: border-box;
       }
 
-      .search-container h4 {
-        margin: 0 0 15px 0;
-        color: var(--text-primary);
-        font-size: 16px;
-        font-weight: 600;
-      }
-
-      .search-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .search-group {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .search-group label {
-        min-width: 120px;
-        font-size: 14px;
-        color: var(--text-secondary);
+      .search-input-wrapper {
+        position: relative;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .search-input {
-        flex: 1;
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        background-color: var(--bg-input);
+        width: 100%;
+        padding: 12px 16px 12px 44px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.2s ease;
+        background: var(--bg-input);
         color: var(--text-primary);
-        font-size: 14px;
+        box-sizing: border-box;
       }
 
       .search-input:focus {
         outline: none;
         border-color: var(--btn-primary-bg);
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
       }
 
-      .search-actions {
+      .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+        width: 16px;
+        height: 16px;
+        pointer-events: none;
+      }
+
+      /* Compact Filter Bar */
+      .filter-bar {
         display: flex;
-        gap: 10px;
-        margin-top: 10px;
-        justify-content: flex-end;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
       }
 
-      .search-actions button {
+      .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .filter-label {
+        font-size: 14px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      .filter-select, .date-range-picker {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-input);
+        color: var(--text-primary);
+        font-size: 14px;
+        cursor: pointer;
+        transition: border-color 0.2s ease;
+      }
+
+      .filter-select:hover, .date-range-picker:hover {
+        border-color: var(--text-secondary);
+      }
+
+      .filter-select:focus, .date-range-picker:focus {
+        outline: none;
+        border-color: var(--btn-primary-bg);
+        box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
+      }
+
+      .date-range-picker {
+        min-width: 140px;
+      }
+
+      .advanced-toggle {
+        color: var(--text-primary);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        font-size: 14px;
+        cursor: pointer;
+        text-decoration: none;
         padding: 8px 16px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
       }
 
-      /* Responsive design improvements */
+      .advanced-toggle:hover {
+        background: var(--bg-hover);
+        border-color: var(--btn-primary-bg);
+      }
+      
+      .advanced-toggle.active {
+        background: var(--btn-primary-bg);
+        color: white;
+        border-color: var(--btn-primary-bg);
+      }
+
+      /* Quick Actions */
+      .quick-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      /* Results Summary */
+      .results-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .results-count {
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      /* Advanced Filters (Hidden by default) */
+      .advanced-filters {
+        display: none;
+        margin-top: 16px;
+        padding: 16px;
+        background: var(--bg-hover);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+      }
+
+      .advanced-filters.open {
+        display: block;
+      }
+
+      .advanced-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      .advanced-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .advanced-form-group label {
+        font-size: 14px;
+        color: var(--text-light);
+        font-weight: 500;
+      }
+
+      .advanced-form-group input,
+      .advanced-form-group select {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 14px;
+        background: var(--bg-input);
+        color: var(--text-primary);
+      }
+
+      .advanced-form-group input:focus,
+      .advanced-form-group select:focus {
+        outline: none;
+        border-color: var(--btn-primary-bg);
+        box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
+      }
+
+      /* Updated Responsive Design */
+      @media (max-width: 768px) {
+        .filter-bar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .filter-group {
+          justify-content: space-between;
+        }
+
+        .quick-actions {
+          margin-top: 12px;
+          width: 100%;
+          justify-content: center;
+        }
+
+        .results-summary {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }
+
+        .advanced-toggle {
+          margin-left: 0;
+          margin-top: 12px;
+        }
+      }
+
       @media (max-width: 400px) {
         body {
           padding: 15px;
@@ -1887,105 +2043,101 @@
       </div>
       <div class="expenses-content" id="expensesContent">
         <div class="expenses-container">
-          <div class="expense-actions">
-            <button id="fetchExpenses" class="btn btn-success">Fetch Expenses</button>
-            <button id="refreshExpenses" class="btn btn-secondary" style="display: none">
-              Refresh
+          <!-- Enhanced Search -->
+          <div class="search-container">
+            <div class="search-input-wrapper">
+              <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+              </svg>
+              <input type="text" class="search-input" id="unifiedSearch" placeholder="Search by merchant name...">
+            </div>
+          </div>
+          
+          <!-- Compact Filter Bar -->
+          <div class="filter-bar" id="filterBar" style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
+            <button class="advanced-toggle" id="advancedToggle" style="padding: 8px 16px; font-size: 14px;">
+              <span style="margin-right: 4px;">⚙️</span> More filters
+            </button>
+            
+            <div style="flex: 1;"></div>
+            
+            <button class="btn btn-secondary" id="clearFilters" style="padding: 8px 16px; font-size: 14px;">Clear Filters</button>
+            <button class="btn btn-secondary" id="refreshExpenses" style="padding: 8px 16px; font-size: 14px;">
+              <span style="margin-right: 4px;">🔄</span> Refresh
+            </button>
+            <button class="btn btn-success" id="fetchExpenses" style="padding: 8px 16px; font-size: 14px;">
+              <span style="margin-right: 4px;">📥</span> Fetch Expenses
             </button>
           </div>
-
-          <!-- Sorting and Pagination Controls -->
-          <div class="expense-controls" id="expenseControls" style="display: none">
-            <div class="control-group">
-              <label for="sortOrder">Sort by:</label>
-              <select id="sortOrder">
-                <option value="date-desc">Date (Newest First)</option>
-                <option value="date-asc">Date (Oldest First)</option>
-                <option value="amount-desc">Amount (Highest First)</option>
-                <option value="amount-asc">Amount (Lowest First)</option>
-                <option value="merchant-asc">Merchant (A-Z)</option>
-                <option value="merchant-desc">Merchant (Z-A)</option>
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label for="itemsPerPage">Show:</label>
-              <select id="itemsPerPage">
-                <option value="5">5 items</option>
-                <option value="10">10 items</option>
-                <option value="20">20 items</option>
-                <option value="50">50 items</option>
-                <option value="100">100 items</option>
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label for="merchantCategory">Category:</label>
-              <select id="merchantCategory">
-                <option value="">All Categories</option>
-                <!-- Categories will be populated dynamically -->
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label for="expenseStatus">Status:</label>
-              <select id="expenseStatus">
-                <option value="">All Status</option>
-                <option value="SUBMITTED">Submitted</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
-                <option value="FLAGGED">Flagged</option>
-              </select>
-            </div>
-
-            <div class="control-group">
-              <button
-                id="clearFilters"
-                class="btn btn-secondary"
-                style="padding: 6px 12px; font-size: 14px"
-              >
-                Clear Filters
-              </button>
-            </div>
-          </div>
-
-          <!-- Search Section -->
-          <div class="expense-search" id="expenseSearch" style="display: none">
-            <div class="search-container">
-              <h4>Search Expenses</h4>
-              <div class="search-controls">
-                <div class="search-group">
-                  <label for="merchantSearch">Merchant Name:</label>
-                  <input
-                    type="text"
-                    id="merchantSearch"
-                    placeholder="Search by merchant name..."
-                    class="search-input"
-                  />
-                </div>
-
-                <div class="search-group">
-                  <label for="dateFromSearch">From Date:</label>
-                  <input type="date" id="dateFromSearch" class="search-input" />
-                </div>
-
-                <div class="search-group">
-                  <label for="dateToSearch">To Date:</label>
-                  <input type="date" id="dateToSearch" class="search-input" />
-                </div>
-
-                <div class="search-actions">
-                  <button id="performSearch" class="btn btn-primary">Search</button>
-                  <button id="clearSearch" class="btn btn-secondary">Clear</button>
-                </div>
+          
+          <!-- Advanced Filters (Hidden) -->
+          <div class="advanced-filters" id="advancedFilters">
+            <div class="advanced-grid">
+              <div class="advanced-form-group">
+                <label>Date Range</label>
+                <select class="date-range-picker" id="dateRangePicker">
+                  <option value="">All Dates</option>
+                  <option value="last30">Last 30 days</option>
+                  <option value="thisMonth">This month</option>
+                  <option value="lastMonth">Last month</option>
+                  <option value="last3Months">Last 3 months</option>
+                  <option value="thisYear">This year</option>
+                  <option value="custom">Custom range...</option>
+                </select>
+              </div>
+              <div class="advanced-form-group">
+                <label>Status</label>
+                <select class="filter-select" id="expenseStatus">
+                  <option value="">All Status</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="SUBMITTED">Submitted</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="FLAGGED">Flagged</option>
+                </select>
+              </div>
+              <div class="advanced-form-group">
+                <label>Date From</label>
+                <input type="date" id="dateFromSearch">
+              </div>
+              <div class="advanced-form-group">
+                <label>Date To</label>
+                <input type="date" id="dateToSearch">
+              </div>
+              <div class="advanced-form-group">
+                <label>Sort By</label>
+                <select id="sortOrder">
+                  <option value="date-desc">Date (Newest First)</option>
+                  <option value="date-asc">Date (Oldest First)</option>
+                  <option value="amount-desc">Amount (Highest First)</option>
+                  <option value="amount-asc">Amount (Lowest First)</option>
+                  <option value="merchant-asc">Merchant (A-Z)</option>
+                  <option value="merchant-desc">Merchant (Z-A)</option>
+                </select>
+              </div>
+              <div class="advanced-form-group">
+                <label>Items Per Page</label>
+                <select id="itemsPerPage">
+                  <option value="5">5 items</option>
+                  <option value="10">10 items</option>
+                  <option value="20">20 items</option>
+                  <option value="50">50 items</option>
+                  <option value="100">100 items</option>
+                </select>
               </div>
             </div>
           </div>
+          
+          <!-- Results Summary -->
+          <div class="results-summary" id="resultsContainer" style="display: none;">
+            <span class="results-count" id="expensesStatus">Showing 0 of 0 expenses</span>
+          </div>
 
-          <div class="expenses-status" id="expensesStatus">
+          <!-- Initial message before fetching -->
+          <div class="expenses-status" id="initialStatus" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
             Click "Fetch Expenses" to load your recent expenses
           </div>
+
           <div class="expenses-list" id="expensesList" style="display: none">
             <!-- Expenses will be populated here -->
           </div>

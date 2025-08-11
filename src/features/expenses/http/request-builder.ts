@@ -45,7 +45,8 @@ export class RequestBuilder {
       'accept-language': 'en',
       authorization: token,
       'x-timezone': this.config.defaultTimezone,
-      'x-request-id': `ext-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      // Removed x-request-id header as it causes CORS issues with Navan API
+      // The header is not allowed by Access-Control-Allow-Headers in preflight response
     };
 
     return { ...baseHeaders, ...(additionalHeaders as Record<string, string>) };

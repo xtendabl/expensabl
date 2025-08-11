@@ -1,6 +1,7 @@
 import { error as logError, info, warn } from '../shared/services/logger/chrome-logger-setup';
 import { MessageAdapter, UIMessage } from './message-adapter';
 import { SidepanelUI } from './sidepanel-ui';
+import { testApiParameters } from './test-api-helper';
 
 /**
  * Sidepanel entry point that integrates with the existing HTML UI
@@ -124,6 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize the UI handler
   const ui = new SidepanelUI(sendMessage);
+
+  // Make test function available in console
+  (window as Window & { testApiParameters: typeof testApiParameters }).testApiParameters =
+    testApiParameters;
+  info('💡 API tester ready! Run testApiParameters() in console to test API parameters.');
   ui.initialize();
 
   // Make UI instance available globally for debugging
