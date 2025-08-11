@@ -760,9 +760,7 @@ export class SidepanelUI {
              target="_blank" 
              rel="noopener noreferrer"
              class="open-in-navan-link"
-             title="Open expense ${expenseId} in Navan web app">
-            Open expense ${expenseId} in Navan 
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-left: 4px;">
+              title="Open expense in Navan web app">             Open in Navan            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-left: 4px;">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
               <line x1="10" y1="14" x2="21" y2="3"></line>
@@ -784,13 +782,13 @@ export class SidepanelUI {
 
       detailContent.innerHTML = detailHTML;
 
-      // Add receipt upload section
-      const receiptContainer = document.createElement('div');
-      receiptContainer.id = 'expenseDetailReceiptSection';
-      detailContent.appendChild(receiptContainer);
+      // Receipt section removed as per task requirements
+      // const receiptContainer = document.createElement('div');
+      // receiptContainer.id = 'expenseDetailReceiptSection';
+      // detailContent.appendChild(receiptContainer);
 
       // Initialize receipt upload component with full expense data
-      this.initializeReceiptUpload(expenseId, receiptContainer, fullExpenseData || undefined);
+      // this.initializeReceiptUpload(expenseId, receiptContainer, fullExpenseData || undefined);
 
       // Add event listener for customize fields button
       const customizeBtn = detailContent.querySelector('#customizeFields');

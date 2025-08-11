@@ -583,7 +583,7 @@
         background: var(--bg-hover);
         border-color: var(--btn-primary-bg);
       }
-      
+
       .advanced-toggle.active {
         background: var(--btn-primary-bg);
         color: white;
@@ -2047,29 +2047,60 @@
           <div class="search-container">
             <div class="search-input-wrapper">
               <svg class="search-icon" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                <path
+                  fill-rule="evenodd"
+                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                  clip-rule="evenodd"
+                />
               </svg>
-              <input type="text" class="search-input" id="unifiedSearch" placeholder="Search by merchant name...">
+              <input
+                type="text"
+                class="search-input"
+                id="unifiedSearch"
+                placeholder="Search by merchant name..."
+              />
             </div>
           </div>
-          
+
           <!-- Compact Filter Bar -->
-          <div class="filter-bar" id="filterBar" style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
-            <button class="advanced-toggle" id="advancedToggle" style="padding: 8px 16px; font-size: 14px;">
-              <span style="margin-right: 4px;">⚙️</span> More filters
+          <div
+            class="filter-bar"
+            id="filterBar"
+            style="display: flex; align-items: center; gap: 12px; padding: 12px 0"
+          >
+            <button
+              class="advanced-toggle"
+              id="advancedToggle"
+              style="padding: 8px 16px; font-size: 14px"
+            >
+              <span style="margin-right: 4px">⚙️</span> More filters
             </button>
-            
-            <div style="flex: 1;"></div>
-            
-            <button class="btn btn-secondary" id="clearFilters" style="padding: 8px 16px; font-size: 14px;">Clear Filters</button>
-            <button class="btn btn-secondary" id="refreshExpenses" style="padding: 8px 16px; font-size: 14px;">
-              <span style="margin-right: 4px;">🔄</span> Refresh
+
+            <div style="flex: 1"></div>
+
+            <button
+              class="btn btn-secondary"
+              id="clearFilters"
+              style="padding: 8px 16px; font-size: 14px"
+            >
+              Clear Filters
             </button>
-            <button class="btn btn-success" id="fetchExpenses" style="padding: 8px 16px; font-size: 14px;">
-              <span style="margin-right: 4px;">📥</span> Fetch Expenses
+            <button
+              class="btn btn-secondary"
+              id="refreshExpenses"
+              style="padding: 8px 16px; font-size: 14px"
+            >
+              <span style="margin-right: 4px">🔄</span> Refresh
+            </button>
+            <button
+              class="btn btn-success"
+              id="fetchExpenses"
+              style="padding: 8px 16px; font-size: 14px"
+            >
+              <span style="margin-right: 4px">📥</span> Fetch Expenses
             </button>
           </div>
-          
+
           <!-- Advanced Filters (Hidden) -->
           <div class="advanced-filters" id="advancedFilters">
             <div class="advanced-grid">
@@ -2098,11 +2129,11 @@
               </div>
               <div class="advanced-form-group">
                 <label>Date From</label>
-                <input type="date" id="dateFromSearch">
+                <input type="date" id="dateFromSearch" />
               </div>
               <div class="advanced-form-group">
                 <label>Date To</label>
-                <input type="date" id="dateToSearch">
+                <input type="date" id="dateToSearch" />
               </div>
               <div class="advanced-form-group">
                 <label>Sort By</label>
@@ -2127,14 +2158,18 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Results Summary -->
-          <div class="results-summary" id="resultsContainer" style="display: none;">
+          <div class="results-summary" id="resultsContainer" style="display: none">
             <span class="results-count" id="expensesStatus">Showing 0 of 0 expenses</span>
           </div>
 
           <!-- Initial message before fetching -->
-          <div class="expenses-status" id="initialStatus" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+          <div
+            class="expenses-status"
+            id="initialStatus"
+            style="text-align: center; padding: 40px 20px; color: var(--text-muted)"
+          >
             Click "Fetch Expenses" to load your recent expenses
           </div>
 
@@ -2146,7 +2181,7 @@
         <!-- Expense Detail View -->
         <div class="expense-detail" id="expenseDetail" style="display: none">
           <div class="detail-header">
-            <button id="backToList" class="btn btn-secondary">← Back to List</button>
+            <button id="backToList" class="btn btn-secondary">← Back to My Expenses</button>
             <h3>Expense Details</h3>
           </div>
           <div class="detail-content" id="expenseDetailContent">
@@ -2154,7 +2189,6 @@
           </div>
           <div class="detail-actions">
             <button id="duplicateExpense" class="btn btn-primary">Duplicate Expense</button>
-            <button id="saveAsTemplate" class="btn btn-secondary">Save as Template</button>
           </div>
         </div>
       </div>
