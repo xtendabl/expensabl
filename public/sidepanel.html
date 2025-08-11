@@ -708,193 +708,6 @@
         border-color: var(--btn-primary-hover);
       }
 
-      /* Templates Section Styles */
-      .templates-section {
-        margin-top: 20px;
-        background-color: var(--bg-card);
-        border-radius: 8px;
-        box-shadow: var(--shadow-sm);
-      }
-
-      .templates-header {
-        padding: 20px;
-        border-bottom: 1px solid var(--border-color);
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: background-color 0.2s ease;
-      }
-
-      .templates-header:hover {
-        background-color: var(--bg-hover);
-      }
-
-      .templates-title {
-        color: var(--text-primary);
-        font-size: 18px;
-        font-weight: 600;
-        margin: 0;
-      }
-
-      .templates-toggle {
-        color: var(--text-muted);
-        font-size: 14px;
-        font-weight: bold;
-        transition: transform 0.2s ease;
-      }
-
-      .templates-toggle.expanded {
-        transform: rotate(180deg);
-      }
-
-      .templates-content {
-        padding: 20px;
-      }
-
-      .templates-section h2 {
-        color: var(--text-primary);
-        font-size: 18px;
-        margin-bottom: 15px;
-      }
-
-      .template-controls {
-        margin-bottom: 15px;
-      }
-
-      .templates-status {
-        margin-bottom: 15px;
-        font-size: 13px;
-        color: var(--text-muted);
-        min-height: 20px;
-      }
-
-      .templates-status.success {
-        color: var(--btn-success-bg);
-      }
-
-      .templates-status.error {
-        color: var(--btn-danger-bg);
-      }
-
-      /* Template List Styles */
-      .template-list {
-        max-height: 400px;
-        overflow-y: auto;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-      }
-
-      .template-item {
-        background-color: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 12px;
-        transition:
-          box-shadow 0.2s ease,
-          border-color 0.2s ease;
-        cursor: pointer;
-      }
-
-      .template-item:hover {
-        box-shadow: var(--shadow-md);
-        border-color: var(--btn-primary-bg);
-      }
-
-      .template-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-      }
-
-      .template-name {
-        font-weight: 600;
-        font-size: 16px;
-        color: var(--text-primary);
-        flex: 1;
-      }
-
-      .template-actions {
-        display: flex;
-        gap: 8px;
-      }
-
-      .btn-icon {
-        background: none;
-        border: none;
-        padding: 4px;
-        border-radius: 4px;
-        cursor: pointer;
-        color: var(--text-muted);
-        transition:
-          background-color 0.2s ease,
-          color 0.2s ease;
-      }
-
-      .btn-icon:hover {
-        background-color: var(--bg-hover);
-        color: var(--text-primary);
-      }
-
-      .template-details {
-        margin-bottom: 16px;
-      }
-
-      .template-merchant {
-        font-size: 14px;
-        color: var(--text-light);
-        margin-bottom: 4px;
-      }
-
-      .template-amount {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 8px;
-      }
-
-      .template-meta {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 12px;
-        color: var(--text-muted);
-      }
-
-      .template-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: 12px;
-        border-top: 1px solid var(--border-light);
-      }
-
-      /* Template Detail/Edit Styles */
-      .template-detail {
-        margin-top: 20px;
-        background-color: var(--bg-card);
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: var(--shadow-sm);
-      }
-
-      .template-detail .detail-header {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid var(--border-color);
-      }
-
-      .template-detail .detail-header h3 {
-        margin: 0;
-        color: var(--text-primary);
-        font-size: 18px;
-      }
-
       /* Form Styles */
       .form-group {
         margin-bottom: 20px;
@@ -1266,297 +1079,6 @@
         opacity: 1;
       }
 
-      /* Empty State */
-      .template-empty {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--text-muted);
-      }
-
-      .template-empty h4 {
-        margin: 10px 0;
-        color: var(--text-light);
-      }
-
-      .template-empty p {
-        margin-bottom: 20px;
-        font-size: 14px;
-      }
-
-      /* Scheduling Configuration Styles */
-      .scheduling-section {
-        margin-top: 20px;
-        padding: 15px;
-        background-color: var(--bg-hover);
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-      }
-
-      .scheduling-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-      }
-
-      .scheduling-header h4 {
-        margin: 0;
-        color: var(--text-primary);
-        font-size: 16px;
-      }
-
-      .switch {
-        position: relative;
-        display: inline-block;
-        width: 48px;
-        height: 24px;
-      }
-
-      .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-      }
-
-      .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: var(--text-muted);
-        transition: 0.3s;
-        border-radius: 24px;
-      }
-
-      .slider:before {
-        position: absolute;
-        content: '';
-        height: 18px;
-        width: 18px;
-        left: 3px;
-        bottom: 3px;
-        background-color: white;
-        transition: 0.3s;
-        border-radius: 50%;
-      }
-
-      input:checked + .slider {
-        background-color: var(--btn-primary-bg);
-      }
-
-      input:checked + .slider:before {
-        transform: translateX(24px);
-      }
-
-      .scheduling-config {
-        margin-top: 15px;
-      }
-
-      .frequency-options {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-      }
-
-      .frequency-options label {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        cursor: pointer;
-        font-weight: normal;
-      }
-
-      .time-input-group {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .time-input-group select {
-        width: auto;
-        min-width: 60px;
-      }
-
-      .day-checkboxes {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-
-      .day-checkboxes label {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        cursor: pointer;
-        font-weight: normal;
-        min-width: 60px;
-      }
-
-      .scheduling-preview {
-        margin: 15px 0;
-        padding: 10px;
-        background-color: var(--bg-hover);
-        border-radius: 4px;
-        font-size: 14px;
-      }
-
-      .scheduling-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 10px;
-      }
-
-      .form-text {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-top: 4px;
-      }
-
-      /* Execution History Styles */
-      .execution-history {
-        margin-top: 20px;
-        padding: 15px;
-        background-color: var(--bg-hover);
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-      }
-
-      .execution-history h4 {
-        margin: 0 0 15px 0;
-        color: var(--text-primary);
-        font-size: 16px;
-      }
-
-      .history-table {
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        overflow: hidden;
-      }
-
-      .history-header {
-        display: flex;
-        background-color: var(--bg-hover);
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--text-light);
-      }
-
-      .history-header > div {
-        padding: 12px 8px;
-        border-right: 1px solid var(--border-color);
-      }
-
-      .history-header > div:last-child {
-        border-right: none;
-      }
-
-      .col-datetime {
-        flex: 2;
-        min-width: 140px;
-      }
-
-      .col-status {
-        flex: 1;
-        min-width: 100px;
-      }
-
-      .col-expense {
-        flex: 2;
-        min-width: 120px;
-      }
-
-      .history-body {
-        max-height: 300px;
-        overflow-y: auto;
-      }
-
-      .history-row {
-        display: flex;
-        border-bottom: 1px solid var(--border-light);
-        background-color: var(--bg-card);
-      }
-
-      .history-row:hover {
-        background-color: var(--bg-hover);
-      }
-
-      .history-row:last-child {
-        border-bottom: none;
-      }
-
-      .history-row > div {
-        padding: 10px 8px;
-        border-right: 1px solid var(--border-light);
-        font-size: 13px;
-      }
-
-      .history-row > div:last-child {
-        border-right: none;
-      }
-
-      .history-pagination {
-        margin-top: 10px;
-        text-align: center;
-      }
-
-      .execution-status {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      /* Scheduling indicator styles */
-      .scheduling-info {
-        margin-top: 8px;
-      }
-
-      .scheduling-indicator {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        padding: 2px 6px;
-        border-radius: 3px;
-      }
-
-      .scheduling-indicator.active {
-        color: var(--status-approved-text);
-        background-color: var(--status-approved);
-      }
-
-      .scheduling-indicator.paused {
-        color: var(--status-pending-text);
-        background-color: var(--status-pending);
-      }
-
-      .scheduling-indicator.inactive {
-        color: var(--text-muted);
-        background-color: var(--status-unknown);
-      }
-
-      /* Icon replacements for cross-browser compatibility */
-      .icon-clock::before {
-        content: '🕒';
-        font-size: 12px;
-      }
-
-      .icon-clock-outline::before {
-        content: '⏰';
-        font-size: 12px;
-      }
-
-      /* Help Section Styles */
-      /* Settings Section */
-      .settings-section {
-        margin-bottom: 20px;
-        background-color: var(--bg-card);
-        border-radius: 8px;
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-      }
-
       .settings-header {
         padding: 15px 20px;
         background-color: var(--bg-hover);
@@ -1604,7 +1126,7 @@
         color: var(--text-primary);
       }
 
-      .setting-label input[type="checkbox"] {
+      .setting-label input[type='checkbox'] {
         cursor: pointer;
       }
 
@@ -1615,161 +1137,71 @@
         color: var(--text-secondary);
       }
 
-      .help-section {
-        margin-bottom: 20px;
-        background-color: var(--bg-card);
-        border-radius: 8px;
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-      }
 
-      .help-header {
-        padding: 15px 20px;
-        background-color: var(--bg-hover);
-        border-bottom: 1px solid var(--border-color);
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: background-color 0.2s ease;
-      }
 
-      .help-header:hover {
-        background-color: var(--bg-hover);
-      }
-
-      .help-title {
-        font-weight: 600;
-        color: var(--text-primary);
-        font-size: 16px;
-      }
-
-      .help-toggle {
-        color: var(--text-muted);
-        font-size: 14px;
-        font-weight: bold;
-        transition: transform 0.2s ease;
-      }
-
-      .help-toggle.expanded {
-        transform: rotate(180deg);
-      }
-
-      .help-content {
-        padding: 20px;
-        background-color: var(--bg-card);
-      }
-
-      .help-item {
-        margin-bottom: 20px;
-      }
-
-      .help-item:last-child {
-        margin-bottom: 0;
-      }
-
-      .help-item h4 {
-        margin: 0 0 8px 0;
-        color: var(--text-primary);
-        font-size: 14px;
-        font-weight: 600;
-      }
-
-      .help-item p {
-        margin: 0 0 4px 0;
-        color: var(--text-secondary);
-        font-size: 13px;
-        line-height: 1.4;
-      }
-
-      .help-item p:last-child {
-        margin-bottom: 0;
-      }
-
-      /* Help table styles */
-      .help-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 10px 0;
-        font-size: 13px;
-      }
-
-      .help-table th {
-        background: var(--bg-hover);
-        padding: 8px;
-        text-align: left;
-        font-weight: 600;
-        border-bottom: 2px solid var(--border-color);
-        color: var(--text-primary);
-      }
-
-      .help-table td {
-        padding: 8px;
-        border-bottom: 1px solid var(--border-color);
-        color: var(--text-secondary);
-      }
-
-      .help-table tr:last-child td {
-        border-bottom: none;
-      }
-
-      .help-table code {
-        background: var(--bg-hover);
-        padding: 2px 4px;
-        border-radius: 3px;
-        font-family: monospace;
-        font-size: 12px;
-      }
-
-      /* Execution Timeline Styles */
-      .execution-timeline {
-        margin-top: 15px;
-        padding: 12px;
-        background-color: var(--bg-hover);
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-      }
-
-      .execution-timeline strong {
-        display: block;
-        margin-bottom: 10px;
-        font-size: 14px;
-        color: var(--btn-primary-hover);
-      }
-
-      .timeline-items {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .timeline-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        background-color: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        font-size: 13px;
-      }
-
-      .timeline-time {
-        font-weight: 500;
-        color: var(--text-primary);
-      }
-
-      .timeline-relative {
-        color: var(--text-muted);
-        font-style: italic;
-        font-size: 12px;
-      }
-
-      /* Responsive adjustments for templates */
+      /* Responsive adjustments */
       @media (max-width: 400px) {
-        .templates-section {
+        body {
           padding: 15px;
         }
+
+        .content,
+        .expenses-section {
+          padding: 15px;
+        }
+
+        h1 {
+          font-size: 20px;
+          margin-bottom: 15px;
+        }
+
+        .expenses-section h2 {
+          font-size: 16px;
+          margin-bottom: 12px;
+        }
+
+        .expense-item {
+          padding: 10px;
+        }
+
+        .expense-merchant {
+          font-size: 14px;
+        }
+
+        .expense-details {
+          font-size: 11px;
+        }
+
+        .expense-amount {
+          font-size: 14px;
+        }
+
+        .btn {
+          padding: 6px 12px;
+          font-size: 13px;
+        }
+
+        .expense-actions {
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .expense-controls {
+          flex-direction: column;
+          gap: 10px;
+          align-items: stretch;
+        }
+
+        .control-group {
+          flex-direction: column;
+          gap: 5px;
+          align-items: stretch;
+        }
+
+        .control-group select {
+          min-width: 100%;
+        }
+      }
 
         .template-item {
           padding: 12px;
@@ -1867,7 +1299,9 @@
         max-height: 90vh;
         overflow: auto;
         opacity: 0;
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s ease;
         z-index: 10001;
       }
 
@@ -2446,45 +1880,6 @@
       </div>
     </div>
 
-    <!-- Help Section -->
-    <!-- Settings Section -->
-    <div class="settings-section">
-      <div class="settings-header" id="settingsHeader">
-        <span class="settings-title">Settings</span>
-        <span class="settings-toggle" id="settingsToggle">▼</span>
-      </div>
-      <div class="settings-content" id="settingsContent" style="display: none">
-        <div class="setting-item">
-          <label class="setting-label">
-            <input type="checkbox" id="searchEnabled" checked />
-            <span>Enable Expense Search</span>
-          </label>
-          <div class="setting-description">
-            Show search functionality to filter expenses by merchant name and date range
-          </div>
-        </div>
-        <div class="setting-item">
-          <label class="setting-label">
-            <input type="checkbox" id="autoFetchExpenses" checked />
-            <span>Auto-fetch Expenses on Open</span>
-          </label>
-          <div class="setting-description">
-            Automatically fetch and display expenses when the sidepanel opens
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="help-section">
-      <div class="help-header" id="helpHeader">
-        <span class="help-title">Help & Getting Started</span>
-        <span class="help-toggle" id="helpToggle">▼</span>
-      </div>
-      <div class="help-content" id="helpContent" style="display: none">
-        <!-- Content will be injected dynamically -->
-      </div>
-    </div>
-
     <div class="expenses-section">
       <div class="expenses-header" id="expensesHeader">
         <h2 class="expenses-title">My Expenses</h2>
@@ -2562,32 +1957,24 @@
               <div class="search-controls">
                 <div class="search-group">
                   <label for="merchantSearch">Merchant Name:</label>
-                  <input 
-                    type="text" 
-                    id="merchantSearch" 
+                  <input
+                    type="text"
+                    id="merchantSearch"
                     placeholder="Search by merchant name..."
                     class="search-input"
                   />
                 </div>
-                
+
                 <div class="search-group">
                   <label for="dateFromSearch">From Date:</label>
-                  <input 
-                    type="date" 
-                    id="dateFromSearch"
-                    class="search-input"
-                  />
+                  <input type="date" id="dateFromSearch" class="search-input" />
                 </div>
-                
+
                 <div class="search-group">
                   <label for="dateToSearch">To Date:</label>
-                  <input 
-                    type="date" 
-                    id="dateToSearch"
-                    class="search-input"
-                  />
+                  <input type="date" id="dateToSearch" class="search-input" />
                 </div>
-                
+
                 <div class="search-actions">
                   <button id="performSearch" class="btn btn-primary">Search</button>
                   <button id="clearSearch" class="btn btn-secondary">Clear</button>
@@ -2616,339 +2003,6 @@
           <div class="detail-actions">
             <button id="duplicateExpense" class="btn btn-primary">Duplicate Expense</button>
             <button id="saveAsTemplate" class="btn btn-secondary">Save as Template</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Templates Section -->
-    <div class="templates-section">
-      <div class="templates-header" id="templatesHeader">
-        <h2 class="templates-title">Expense Templates</h2>
-        <span class="templates-toggle" id="templatesToggle">▼</span>
-      </div>
-      <div class="templates-content" id="templatesContent">
-        <div class="template-controls">
-          <div class="templates-status" id="templatesStatus">
-            Click "Fetch Expenses" to create templates from existing expenses
-          </div>
-        </div>
-        <div class="template-content">
-          <!-- Template List View -->
-          <div class="template-list" id="templateList" style="display: none">
-            <div class="template-list-content" id="templateListContent">
-              <!-- Template items will be populated here -->
-            </div>
-          </div>
-
-          <!-- Template Detail/Edit View -->
-          <div class="template-detail" id="templateDetail" style="display: none">
-            <div
-              class="detail-header"
-              style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center"
-            >
-              <button id="backToTemplates" class="btn btn-secondary" style="justify-self: start">
-                ← Back
-              </button>
-              <h3 id="templateDetailTitle" style="margin: 0; text-align: center">
-                Template Details
-              </h3>
-              <button id="toggleTemplateEdit" class="btn btn-secondary" style="justify-self: end">
-                Edit
-              </button>
-            </div>
-
-            <div class="detail-content" id="templateDetailContent">
-              <!-- Template details in read-only format -->
-            </div>
-
-            <!-- Execution History Section -->
-            <div class="execution-history" id="executionHistory" style="display: none">
-              <div
-                style="
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  margin-bottom: 15px;
-                "
-              >
-                <h4 style="margin: 0">Execution History</h4>
-                <button class="btn btn-secondary" id="refreshHistory">Refresh</button>
-              </div>
-              <div class="history-table">
-                <div class="history-header">
-                  <div class="col-datetime">Date/Time</div>
-                  <div class="col-status">Status</div>
-                  <div class="col-expense">Expense</div>
-                </div>
-                <div class="history-body" id="historyBody">
-                  <!-- History rows populated dynamically -->
-                </div>
-              </div>
-              <div class="history-pagination" style="display: none">
-                <button class="btn btn-secondary" id="loadMoreHistory">Load More</button>
-              </div>
-            </div>
-
-            <div class="template-edit-form" id="templateEditForm" style="display: none">
-              <!-- Template editing form -->
-              <div class="form-group">
-                <label for="templateName">Template Name</label>
-                <input type="text" id="templateName" class="form-control" required />
-                <div class="error-message" id="templateNameError"></div>
-              </div>
-
-              <div class="form-group">
-                <label for="templateMerchant">Merchant</label>
-                <input type="text" id="templateMerchant" class="form-control" required />
-                <div class="error-message" id="templateMerchantError"></div>
-              </div>
-
-              <div class="form-group">
-                <label for="templateAmount">Amount</label>
-                <div class="input-group">
-                  <select id="templateCurrency" class="form-control currency-select">
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                  </select>
-                  <input
-                    type="number"
-                    id="templateAmount"
-                    class="form-control"
-                    step="0.01"
-                    required
-                  />
-                </div>
-                <div class="error-message" id="templateAmountError"></div>
-              </div>
-
-              <div class="form-group">
-                <label for="templateDescription">Description</label>
-                <textarea id="templateDescription" class="form-control" rows="3"></textarea>
-              </div>
-
-              <!-- Scheduling Configuration Section -->
-              <div class="scheduling-section">
-                <div class="scheduling-header">
-                  <h4>Schedule Template</h4>
-                  <div class="scheduling-toggle">
-                    <label class="switch">
-                      <input type="checkbox" id="enableScheduling" />
-                      <span class="slider"></span>
-                    </label>
-                  </div>
-                </div>
-
-                <div class="scheduling-config" id="schedulingConfig" style="display: none">
-                  <div class="form-group">
-                    <label>Frequency</label>
-                    <div class="frequency-options">
-                      <label><input type="radio" name="frequency" value="daily" /> Daily</label>
-                      <label><input type="radio" name="frequency" value="weekly" /> Weekly</label>
-                      <label><input type="radio" name="frequency" value="monthly" /> Monthly</label>
-                      <label><input type="radio" name="frequency" value="custom" /> Custom</label>
-                    </div>
-                  </div>
-
-                  <div class="form-group time-settings">
-                    <label id="timeSettingsLabel">Execution Start Time</label>
-                    <div class="time-input-group">
-                      <select id="hour" class="form-control">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                        <option value="9" selected>9</option>
-                        <option value="10">10</option>
-                        <option value="11">11</option>
-                        <option value="12">12</option>
-                      </select>
-                      <select id="minute" class="form-control">
-                        <option value="0" selected>00</option>
-                        <option value="15">15</option>
-                        <option value="30">30</option>
-                        <option value="45">45</option>
-                      </select>
-                      <select id="ampm" class="form-control">
-                        <option value="AM" selected>AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="form-group weekly-settings" style="display: none">
-                    <label>Days of Week</label>
-                    <div class="day-checkboxes">
-                      <label><input type="checkbox" value="monday" /> Mon</label>
-                      <label><input type="checkbox" value="tuesday" /> Tue</label>
-                      <label><input type="checkbox" value="wednesday" /> Wed</label>
-                      <label><input type="checkbox" value="thursday" /> Thu</label>
-                      <label><input type="checkbox" value="friday" /> Fri</label>
-                      <label><input type="checkbox" value="saturday" /> Sat</label>
-                      <label><input type="checkbox" value="sunday" /> Sun</label>
-                    </div>
-                  </div>
-
-                  <div class="form-group monthly-settings" style="display: none">
-                    <label>Day of Month</label>
-                    <select id="dayOfMonth" class="form-control">
-                      <option value="1" selected>1st</option>
-                      <option value="2">2nd</option>
-                      <option value="3">3rd</option>
-                      <option value="4">4th</option>
-                      <option value="5">5th</option>
-                      <option value="6">6th</option>
-                      <option value="7">7th</option>
-                      <option value="8">8th</option>
-                      <option value="9">9th</option>
-                      <option value="10">10th</option>
-                      <option value="11">11th</option>
-                      <option value="12">12th</option>
-                      <option value="13">13th</option>
-                      <option value="14">14th</option>
-                      <option value="15">15th</option>
-                      <option value="16">16th</option>
-                      <option value="17">17th</option>
-                      <option value="18">18th</option>
-                      <option value="19">19th</option>
-                      <option value="20">20th</option>
-                      <option value="21">21st</option>
-                      <option value="22">22nd</option>
-                      <option value="23">23rd</option>
-                      <option value="24">24th</option>
-                      <option value="25">25th</option>
-                      <option value="26">26th</option>
-                      <option value="27">27th</option>
-                      <option value="28">28th</option>
-                      <option value="29">29th</option>
-                      <option value="30">30th</option>
-                      <option value="31">31st</option>
-                      <option value="last">Last Day</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group custom-settings" style="display: none">
-                    <label>Custom Interval</label>
-                    <select id="customInterval" class="form-control">
-                      <option value="1">Every 1 minute</option>
-                      <option value="5">Every 5 minutes</option>
-                      <option value="10">Every 10 minutes</option>
-                      <option value="15">Every 15 minutes</option>
-                      <option value="30">Every 30 minutes</option>
-                      <option value="45">Every 45 minutes</option>
-                      <option value="60" selected>Every 60 minutes</option>
-                    </select>
-                    <small class="form-text" id="intervalHelpText"
-                      >Select the interval between executions</small
-                    >
-                  </div>
-
-                  <div class="scheduling-preview">
-                    <strong>Next execution:</strong> <span id="nextExecutionPreview">-</span>
-                  </div>
-
-                  <div id="executionTimeline" class="execution-timeline" style="display: none">
-                    <strong>Upcoming executions:</strong>
-                    <div
-                      id="executionTimelineWarning"
-                      class="notification warning"
-                      style="display: none; margin-bottom: 10px"
-                    >
-                      <strong>⚠️ Rapid Execution Warning:</strong> Intervals under 5 minutes may
-                      cause high API usage and performance impact.
-                    </div>
-                    <div class="timeline-items">
-                      <div class="timeline-item">
-                        <span class="timeline-time" data-index="0">-</span>
-                        <span class="timeline-relative" data-index="0">-</span>
-                      </div>
-                      <div class="timeline-item">
-                        <span class="timeline-time" data-index="1">-</span>
-                        <span class="timeline-relative" data-index="1">-</span>
-                      </div>
-                      <div class="timeline-item">
-                        <span class="timeline-time" data-index="2">-</span>
-                        <span class="timeline-relative" data-index="2">-</span>
-                      </div>
-                      <div class="timeline-item">
-                        <span class="timeline-time" data-index="3">-</span>
-                        <span class="timeline-relative" data-index="3">-</span>
-                      </div>
-                      <div class="timeline-item">
-                        <span class="timeline-time" data-index="4">-</span>
-                        <span class="timeline-relative" data-index="4">-</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="scheduling-actions">
-                    <button
-                      type="button"
-                      id="pauseSchedule"
-                      class="btn btn-secondary"
-                      style="display: none"
-                    >
-                      Pause
-                    </button>
-                    <button
-                      type="button"
-                      id="resumeSchedule"
-                      class="btn btn-secondary"
-                      style="display: none"
-                    >
-                      Resume
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-actions">
-                <button id="saveTemplate" class="btn btn-primary">Save Changes</button>
-                <button id="cancelTemplateEdit" class="btn btn-secondary">Cancel</button>
-              </div>
-            </div>
-
-            <div class="detail-actions" id="templateDetailActions">
-              <button id="applyTemplate" class="btn btn-primary">Apply Template</button>
-              <button id="duplicateTemplate" class="btn btn-secondary">Duplicate</button>
-              <button id="deleteTemplate" class="btn btn-danger">Delete</button>
-            </div>
-          </div>
-
-          <!-- Template Creation Dialog -->
-          <div class="template-creation-dialog" id="templateCreationDialog" style="display: none">
-            <div class="dialog-overlay"></div>
-            <div class="dialog-content">
-              <div class="dialog-header">
-                <h3>Save as Template</h3>
-                <button id="closeTemplateDialog" class="btn-close">&times;</button>
-              </div>
-              <div class="dialog-body">
-                <div class="form-group">
-                  <label for="newTemplateName">Template Name</label>
-                  <input
-                    type="text"
-                    id="newTemplateName"
-                    class="form-control"
-                    placeholder="Enter template name"
-                    required
-                  />
-                  <div class="error-message" id="newTemplateNameError"></div>
-                </div>
-                <div class="template-preview" id="templatePreview">
-                  <!-- Preview of template data -->
-                </div>
-              </div>
-              <div class="dialog-actions">
-                <button id="createTemplate" class="btn btn-primary">Create Template</button>
-                <button id="cancelTemplateCreation" class="btn btn-secondary">Cancel</button>
-              </div>
-            </div>
           </div>
         </div>
       </div>

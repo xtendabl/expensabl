@@ -27,7 +27,6 @@ import {
   info,
   warn,
 } from '../shared/services/logger/chrome-logger-setup';
-import { HelpContentBuilder } from './builders/help-content-builder';
 import { FieldSettings } from './components/field-settings';
 import {
   showAmountModificationModal,
@@ -36,7 +35,6 @@ import {
 } from './components/modals';
 import { loading } from './components/modals/modal-types';
 import { duplicationWorkflow } from './components/workflows/expense-duplication-workflow';
-import { HELP_CONTENT } from './constants/help-content';
 import { ExpenseDetailWithReceipt } from './domains/expenses/components/expense-detail-with-receipt';
 
 interface UIState {
@@ -165,18 +163,6 @@ export class SidepanelUI {
     this.attachEventListeners();
     this.initializeCollapsibleSections();
     void this.initializeDarkMode();
-    this.injectHelpContent();
-
-    // Load initial data (templates)
-    void this.loadInitialData();
-
-    // Add debug command for development
-    (window as Window & { debugScheduling?: () => void }).debugScheduling = () => {
-      void this.debugScheduling();
-    };
-    info(
-      'SidepanelUI: Initialization complete. Run debugScheduling() in console to check scheduling status.'
-    );
   }
 
   private attachEventListeners(): void {
@@ -184,20 +170,9 @@ export class SidepanelUI {
       timestamp: Date.now(),
     });
 
-    // Settings section
-    this.setupCollapsible('settingsHeader', 'settingsContent', 'settingsToggle');
-    this.attachSettingsHandlers();
-
-    // Help section
-    this.setupCollapsible('helpHeader', 'helpContent', 'helpToggle');
-
     // Expenses section
     this.setupCollapsible('expensesHeader', 'expensesContent', 'expensesToggle');
     this.attachExpenseHandlers();
-
-    // Templates section
-    this.setupCollapsible('templatesHeader', 'templatesContent', 'templatesToggle');
-    this.attachTemplateHandlers();
 
     logger.debug('ATTACH_EVENT_LISTENERS_COMPLETE', {
       timestamp: Date.now(),
@@ -214,56 +189,6 @@ export class SidepanelUI {
         const isHidden = content.style.display === 'none';
         content.style.display = isHidden ? 'block' : 'none';
         toggle.classList.toggle('expanded', isHidden);
-      });
-    }
-  }
-
-  private attachSettingsHandlers(): void {
-    // Search enabled setting
-    const searchEnabledCheckbox = document.getElementById('searchEnabled') as HTMLInputElement;
-    if (searchEnabledCheckbox) {
-      // Load saved setting
-      void chrome.storage.local.get('expenseSearchEnabled').then((result) => {
-        searchEnabledCheckbox.checked = result.expenseSearchEnabled !== false; // Default to true
-      });
-
-      // Save setting on change
-      searchEnabledCheckbox.addEventListener('change', () => {
-        const isEnabled = searchEnabledCheckbox.checked;
-        void chrome.storage.local.set({ expenseSearchEnabled: isEnabled });
-
-        // Show/hide search section immediately
-        const searchSection = document.getElementById('expenseSearch');
-        if (searchSection) {
-          searchSection.style.display = isEnabled ? 'block' : 'none';
-        }
-
-        this.showToast(
-          'Setting Updated',
-          `Expense search has been ${isEnabled ? 'enabled' : 'disabled'}`,
-          'success'
-        );
-      });
-    }
-
-    // Auto-fetch expenses setting
-    const autoFetchCheckbox = document.getElementById('autoFetchExpenses') as HTMLInputElement;
-    if (autoFetchCheckbox) {
-      // Load saved setting
-      void chrome.storage.local.get('autoFetchExpenses').then((result) => {
-        autoFetchCheckbox.checked = result.autoFetchExpenses !== false; // Default to true
-      });
-
-      // Save setting on change
-      autoFetchCheckbox.addEventListener('change', () => {
-        const isEnabled = autoFetchCheckbox.checked;
-        void chrome.storage.local.set({ autoFetchExpenses: isEnabled });
-
-        this.showToast(
-          'Setting Updated',
-          `Auto-fetch expenses has been ${isEnabled ? 'enabled' : 'disabled'}`,
-          'success'
-        );
       });
     }
   }
@@ -319,12 +244,6 @@ export class SidepanelUI {
       duplicateBtn.addEventListener('click', () => void this.handleDuplicateExpense());
     }
 
-    // Save as template button
-    const saveTemplateBtn = document.getElementById('saveAsTemplate');
-    if (saveTemplateBtn) {
-      saveTemplateBtn.addEventListener('click', () => void this.handleSaveAsTemplate());
-    }
-
     // Sorting and filtering controls
     const sortOrder = document.getElementById('sortOrder') as HTMLSelectElement;
     if (sortOrder) {
@@ -349,122 +268,6 @@ export class SidepanelUI {
     const clearFilters = document.getElementById('clearFilters');
     if (clearFilters) {
       clearFilters.addEventListener('click', () => this.handleClearFilters());
-    }
-  }
-
-  private attachTemplateHandlers(): void {
-    // Back to templates button
-    const backBtn = document.getElementById('backToTemplates');
-    if (backBtn) {
-      backBtn.addEventListener('click', () => this.showTemplateList());
-    }
-
-    // Template edit toggle
-    const editToggle = document.getElementById('toggleTemplateEdit');
-    if (editToggle) {
-      editToggle.addEventListener('click', () => this.toggleTemplateEdit());
-    }
-
-    // Save template button
-    const saveBtn = document.getElementById('saveTemplate');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => void this.handleSaveTemplate());
-    }
-
-    // Cancel template edit
-    const cancelBtn = document.getElementById('cancelTemplateEdit');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => this.cancelTemplateEdit());
-    }
-
-    // Apply template button
-    const applyBtn = document.getElementById('applyTemplate');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', () => {
-        logger.debug('DETAIL_APPLY_BUTTON_CLICK', {
-          templateId: this.state.currentTemplate?.id,
-          timestamp: Date.now(),
-        });
-        void this.handleApplyTemplate();
-      });
-    }
-
-    // Duplicate template button
-    const duplicateBtn = document.getElementById('duplicateTemplate');
-    if (duplicateBtn) {
-      duplicateBtn.addEventListener('click', () => void this.handleDuplicateTemplate());
-    }
-
-    // Delete template button
-    const deleteBtn = document.getElementById('deleteTemplate');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', () => void this.handleDeleteTemplate());
-    }
-
-    // Template dialog handlers
-    const closeDialogBtn = document.getElementById('closeTemplateDialog');
-    if (closeDialogBtn) {
-      closeDialogBtn.addEventListener('click', () => this.closeTemplateDialog());
-    }
-
-    const cancelCreationBtn = document.getElementById('cancelTemplateCreation');
-    if (cancelCreationBtn) {
-      cancelCreationBtn.addEventListener('click', () => this.closeTemplateDialog());
-    }
-
-    const createTemplateBtn = document.getElementById('createTemplate');
-    if (createTemplateBtn) {
-      info('Attaching click listener to createTemplate button');
-      createTemplateBtn.addEventListener('click', () => void this.handleCreateTemplate());
-    } else {
-      error('createTemplate button not found in DOM');
-    }
-
-    // Scheduling handlers
-    const enableScheduling = document.getElementById('enableScheduling') as HTMLInputElement;
-    if (enableScheduling) {
-      enableScheduling.addEventListener('change', () => this.handleSchedulingToggle());
-    }
-
-    // Frequency radio buttons
-    const frequencyRadios = document.querySelectorAll('input[name="frequency"]');
-    frequencyRadios.forEach((radio) => {
-      radio.addEventListener('change', () => this.handleFrequencyChange());
-    });
-
-    // Time input changes
-    const hourSelect = document.getElementById('hour') as HTMLSelectElement;
-    const minuteSelect = document.getElementById('minute') as HTMLSelectElement;
-    const ampmSelect = document.getElementById('ampm') as HTMLSelectElement;
-    const customIntervalSelect = document.getElementById('customInterval') as HTMLSelectElement;
-
-    if (hourSelect) hourSelect.addEventListener('change', () => this.updateSchedulingPreview());
-    if (minuteSelect) minuteSelect.addEventListener('change', () => this.updateSchedulingPreview());
-    if (ampmSelect) ampmSelect.addEventListener('change', () => this.updateSchedulingPreview());
-    if (customIntervalSelect)
-      customIntervalSelect.addEventListener('change', () => this.updateSchedulingPreview());
-
-    // Weekly day checkboxes
-    const dayCheckboxes = document.querySelectorAll('.weekly-settings input[type="checkbox"]');
-    dayCheckboxes.forEach((checkbox) => {
-      checkbox.addEventListener('change', () => this.updateSchedulingPreview());
-    });
-
-    // Monthly day select
-    const dayOfMonthSelect = document.getElementById('dayOfMonth') as HTMLSelectElement;
-    if (dayOfMonthSelect) {
-      dayOfMonthSelect.addEventListener('change', () => this.updateSchedulingPreview());
-    }
-
-    // Pause/Resume scheduling
-    const pauseBtn = document.getElementById('pauseSchedule');
-    if (pauseBtn) {
-      pauseBtn.addEventListener('click', () => void this.handlePauseSchedule());
-    }
-
-    const resumeBtn = document.getElementById('resumeSchedule');
-    if (resumeBtn) {
-      resumeBtn.addEventListener('click', () => void this.handleResumeSchedule());
     }
   }
 
@@ -678,9 +481,6 @@ export class SidepanelUI {
 
         // Render expenses
         this.renderExpenses();
-
-        // Also fetch templates
-        await this.fetchTemplates();
       } else {
         status.textContent = (response.error as string) || 'Failed to fetch expenses';
         status.className = 'expenses-status error';
@@ -693,31 +493,6 @@ export class SidepanelUI {
       this.setLoading(false);
       if (fetchBtn) fetchBtn.disabled = false;
       if (refreshBtn) refreshBtn.disabled = false;
-    }
-  }
-
-  private async fetchTemplates(): Promise<void> {
-    const templatesStatus = document.getElementById('templatesStatus');
-
-    try {
-      const response = await this.sendMessage({ action: 'getTemplates' });
-
-      if (response.success && response.templates) {
-        this.state.templates = response.templates as ExpenseTemplate[];
-        if (templatesStatus) {
-          templatesStatus.textContent = `${(response.templates as ExpenseTemplate[]).length} template(s) available`;
-          templatesStatus.className = 'templates-status success';
-        }
-
-        // Always render templates to update the UI, even if the list is empty
-        const templateList = document.getElementById('templateList');
-        if (templateList) {
-          templateList.style.display = 'block';
-          this.renderTemplates();
-        }
-      }
-    } catch (err) {
-      error('Failed to fetch templates:', { error: err });
     }
   }
 
@@ -815,83 +590,6 @@ export class SidepanelUI {
         const expenseId = item.getAttribute('data-expense-id');
         if (expenseId) {
           void this.showExpenseDetail(expenseId);
-        }
-      });
-    });
-  }
-
-  private renderTemplates(): void {
-    logger.debug('RENDER_TEMPLATES', {
-      count: this.state.templates.length,
-      timestamp: Date.now(),
-    });
-
-    const listContent = document.getElementById('templateListContent');
-    if (!listContent) return;
-
-    if (this.state.templates.length === 0) {
-      listContent.innerHTML = `
-        <div class="template-empty">
-          <h4>No templates yet</h4>
-          <p>Save expenses as templates to reuse them later</p>
-        </div>
-      `;
-      return;
-    }
-
-    listContent.innerHTML = this.state.templates
-      .map(
-        (template) => `
-      <div class="template-item" data-template-id="${template.id}">
-        <div class="template-header">
-          <div class="template-name">${template.name}</div>
-          <div class="template-actions">
-            <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-            <button class="btn-icon" data-action="duplicate" title="Duplicate">📋</button>
-            <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-          </div>
-        </div>
-        <div class="template-details">
-          <div class="template-merchant">${template.expenseData.merchant?.name || 'Unknown Merchant'}</div>
-          <div class="template-amount">${template.expenseData.merchantCurrency || 'USD'} ${template.expenseData.merchantAmount || 0}</div>
-          <div class="template-meta">
-            <span>Used ${template.metadata?.useCount || 0} times</span>
-            ${template.scheduling?.enabled ? '<span class="scheduling-indicator active"><span class="icon-clock"></span> Scheduled</span>' : ''}
-          </div>
-        </div>
-        <div class="template-footer">
-          <button class="btn btn-primary btn-sm" data-action="apply">Apply Template</button>
-        </div>
-      </div>
-    `
-      )
-      .join('');
-
-    // Attach event handlers to template actions
-    listContent.querySelectorAll('.template-item').forEach((item) => {
-      const templateId = item.getAttribute('data-template-id');
-      if (!templateId) return;
-
-      item.querySelectorAll('[data-action]').forEach((actionBtn) => {
-        actionBtn.addEventListener('click', (e) => {
-          logger.debug('CARD_BUTTON_CLICK', {
-            action: actionBtn.getAttribute('data-action'),
-            templateId,
-            timestamp: Date.now(),
-            bubbles: e.bubbles,
-            eventPhase: e.eventPhase,
-          });
-          e.stopPropagation();
-          e.preventDefault(); // Also prevent default behavior
-          const action = actionBtn.getAttribute('data-action');
-          this.handleTemplateAction(templateId, action);
-        });
-      });
-
-      // Click on template item shows detail
-      item.addEventListener('click', (e) => {
-        if (!(e.target as HTMLElement).hasAttribute('data-action')) {
-          void this.showTemplateDetail(templateId);
         }
       });
     });
@@ -1132,29 +830,21 @@ export class SidepanelUI {
     this.currentReceiptComponent.render();
   }
 
-  private async showTemplateDetail(templateId: string): Promise<void> {
-    const template = this.state.templates.find((t) => t.id === templateId);
-    if (!template) return;
+  // Template UI methods (stubbed since template UI was removed)
+  private async fetchTemplates(): Promise<void> {
+    // Template UI removed - this method is now a stub
+  }
 
-    this.state.currentTemplate = template;
-
-    // Hide list, show detail
-    const templateList = document.getElementById('templateList');
-    const templateDetail = document.getElementById('templateDetail');
-
-    if (templateList) templateList.style.display = 'none';
-    if (templateDetail) templateDetail.style.display = 'block';
-
-    // Update detail view
-    this.updateTemplateDetailView();
+  private renderTemplates(): void {
+    // Template UI removed - this method is now a stub
   }
 
   private showTemplateList(): void {
-    const templateList = document.getElementById('templateList');
-    const templateDetail = document.getElementById('templateDetail');
+    // Template UI removed - this method is now a stub
+  }
 
-    if (templateList) templateList.style.display = 'block';
-    if (templateDetail) templateDetail.style.display = 'none';
+  private async showTemplateDetail(_templateId: string): Promise<void> {
+    // Template UI removed - this method is now a stub
   }
 
   private updateTemplateDetailView(): void {
@@ -2633,17 +2323,6 @@ export class SidepanelUI {
       info('Dark mode preference saved:', isDarkMode);
     } catch (err) {
       error('Failed to save dark mode preference:', { error: err });
-    }
-  }
-
-  private injectHelpContent(): void {
-    const helpContentDiv = document.getElementById('helpContent');
-    if (helpContentDiv) {
-      const builder = new HelpContentBuilder();
-      helpContentDiv.innerHTML = builder.build(HELP_CONTENT);
-      logger.debug('Help content injected successfully');
-    } else {
-      logger.warn('Help content container not found');
     }
   }
 
