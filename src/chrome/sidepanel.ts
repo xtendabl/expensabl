@@ -1,6 +1,7 @@
 import { error as logError, info, warn } from '../shared/services/logger/chrome-logger-setup';
 import { MessageAdapter, UIMessage } from './message-adapter';
 import { SidepanelUI } from './sidepanel-ui';
+import { testApiParameters } from './test-api-helper';
 
 /**
  * Sidepanel entry point that integrates with the existing HTML UI
@@ -107,7 +108,7 @@ async function sendMessage(message: Record<string, unknown>): Promise<Record<str
 }
 
 // Make sendMessage available to the existing UI code
-(window as Window & { sendMessage?: typeof sendMessage }).sendMessage = sendMessage;
+window.sendMessage = sendMessage;
 
 // Track if already initialized
 let isInitialized = false;
@@ -124,8 +125,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize the UI handler
   const ui = new SidepanelUI(sendMessage);
+
+  // Make test function available in console
+  window.testApiParameters = testApiParameters;
+  info('💡 API tester ready! Run testApiParameters() in console to test API parameters.');
   ui.initialize();
 
   // Make UI instance available globally for debugging
-  (window as Window & { sidepanelUI?: SidepanelUI }).sidepanelUI = ui;
+  window.sidepanelUI = ui;
 });

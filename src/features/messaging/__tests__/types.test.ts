@@ -12,7 +12,7 @@ describe('MessageAction Enum', () => {
 
     it('should have correct total number of actions', () => {
       const actionCount = Object.keys(MessageAction).length;
-      expect(actionCount).toBe(25); // 4 token + 5 expense + 4 template + 4 scheduling + 5 UI + 3 receipt operations
+      expect(actionCount).toBe(26); // 4 token + 5 expense + 4 template + 4 scheduling + 5 UI + 3 receipt + 1 testing operations
     });
   });
 });

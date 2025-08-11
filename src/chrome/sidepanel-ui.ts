@@ -8,7 +8,11 @@ import {
   searchTransactionToCreatePayload,
 } from '../features/expenses/mappers/search-transaction-mapper';
 import { FieldConfigurationService } from '../features/expenses/services/field-configuration-service';
-import { ExpenseCreatePayload, SearchTransaction } from '../features/expenses/types';
+import {
+  ExpenseCreatePayload,
+  ExpenseFilters,
+  SearchTransaction,
+} from '../features/expenses/types';
 import { ScheduleCalculator } from '../features/templates/scheduler';
 import { ExpenseTemplate, TemplateScheduling } from '../features/templates/types';
 
@@ -27,7 +31,6 @@ import {
   info,
   warn,
 } from '../shared/services/logger/chrome-logger-setup';
-import { HelpContentBuilder } from './builders/help-content-builder';
 import { FieldSettings } from './components/field-settings';
 import {
   showAmountModificationModal,
@@ -36,7 +39,6 @@ import {
 } from './components/modals';
 import { loading } from './components/modals/modal-types';
 import { duplicationWorkflow } from './components/workflows/expense-duplication-workflow';
-import { HELP_CONTENT } from './constants/help-content';
 import { ExpenseDetailWithReceipt } from './domains/expenses/components/expense-detail-with-receipt';
 
 interface UIState {
@@ -165,18 +167,6 @@ export class SidepanelUI {
     this.attachEventListeners();
     this.initializeCollapsibleSections();
     void this.initializeDarkMode();
-    this.injectHelpContent();
-
-    // Load initial data (templates)
-    void this.loadInitialData();
-
-    // Add debug command for development
-    (window as Window & { debugScheduling?: () => void }).debugScheduling = () => {
-      void this.debugScheduling();
-    };
-    info(
-      'SidepanelUI: Initialization complete. Run debugScheduling() in console to check scheduling status.'
-    );
   }
 
   private attachEventListeners(): void {
@@ -184,20 +174,9 @@ export class SidepanelUI {
       timestamp: Date.now(),
     });
 
-    // Settings section
-    this.setupCollapsible('settingsHeader', 'settingsContent', 'settingsToggle');
-    this.attachSettingsHandlers();
-
-    // Help section
-    this.setupCollapsible('helpHeader', 'helpContent', 'helpToggle');
-
     // Expenses section
     this.setupCollapsible('expensesHeader', 'expensesContent', 'expensesToggle');
     this.attachExpenseHandlers();
-
-    // Templates section
-    this.setupCollapsible('templatesHeader', 'templatesContent', 'templatesToggle');
-    this.attachTemplateHandlers();
 
     logger.debug('ATTACH_EVENT_LISTENERS_COMPLETE', {
       timestamp: Date.now(),
@@ -218,56 +197,6 @@ export class SidepanelUI {
     }
   }
 
-  private attachSettingsHandlers(): void {
-    // Search enabled setting
-    const searchEnabledCheckbox = document.getElementById('searchEnabled') as HTMLInputElement;
-    if (searchEnabledCheckbox) {
-      // Load saved setting
-      void chrome.storage.local.get('expenseSearchEnabled').then((result) => {
-        searchEnabledCheckbox.checked = result.expenseSearchEnabled !== false; // Default to true
-      });
-
-      // Save setting on change
-      searchEnabledCheckbox.addEventListener('change', () => {
-        const isEnabled = searchEnabledCheckbox.checked;
-        void chrome.storage.local.set({ expenseSearchEnabled: isEnabled });
-
-        // Show/hide search section immediately
-        const searchSection = document.getElementById('expenseSearch');
-        if (searchSection) {
-          searchSection.style.display = isEnabled ? 'block' : 'none';
-        }
-
-        this.showToast(
-          'Setting Updated',
-          `Expense search has been ${isEnabled ? 'enabled' : 'disabled'}`,
-          'success'
-        );
-      });
-    }
-
-    // Auto-fetch expenses setting
-    const autoFetchCheckbox = document.getElementById('autoFetchExpenses') as HTMLInputElement;
-    if (autoFetchCheckbox) {
-      // Load saved setting
-      void chrome.storage.local.get('autoFetchExpenses').then((result) => {
-        autoFetchCheckbox.checked = result.autoFetchExpenses !== false; // Default to true
-      });
-
-      // Save setting on change
-      autoFetchCheckbox.addEventListener('change', () => {
-        const isEnabled = autoFetchCheckbox.checked;
-        void chrome.storage.local.set({ autoFetchExpenses: isEnabled });
-
-        this.showToast(
-          'Setting Updated',
-          `Auto-fetch expenses has been ${isEnabled ? 'enabled' : 'disabled'}`,
-          'success'
-        );
-      });
-    }
-  }
-
   private attachExpenseHandlers(): void {
     // Fetch expenses button
     const fetchBtn = document.getElementById('fetchExpenses');
@@ -281,28 +210,60 @@ export class SidepanelUI {
       refreshBtn.addEventListener('click', () => void this.handleFetchExpenses());
     }
 
-    // Search functionality
-    const performSearchBtn = document.getElementById('performSearch');
-    if (performSearchBtn) {
-      performSearchBtn.addEventListener('click', () => void this.handlePerformSearch());
+    // Export expenses button
+    const exportBtn = document.getElementById('exportExpenses');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => void this.handleExportExpenses());
     }
 
-    const clearSearchBtn = document.getElementById('clearSearch');
-    if (clearSearchBtn) {
-      clearSearchBtn.addEventListener('click', () => void this.handleClearSearch());
+    // Unified search input
+    const unifiedSearchInput = document.getElementById('unifiedSearch') as HTMLInputElement;
+    if (unifiedSearchInput) {
+      // Debounce search for better performance
+      let searchTimeout: NodeJS.Timeout;
+      unifiedSearchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          void this.handleUnifiedSearch();
+        }, 300);
+      });
+
+      unifiedSearchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          clearTimeout(searchTimeout);
+          void this.handleUnifiedSearch();
+        }
+      });
     }
 
-    // Add enter key support for search inputs
-    const merchantSearchInput = document.getElementById('merchantSearch') as HTMLInputElement;
+    // Advanced filters toggle
+    const advancedToggle = document.getElementById('advancedToggle');
+    if (advancedToggle) {
+      advancedToggle.addEventListener('click', () => {
+        this.toggleAdvancedFilters();
+      });
+    }
+
+    // Advanced filter inputs for real-time updates
     const dateFromInput = document.getElementById('dateFromSearch') as HTMLInputElement;
     const dateToInput = document.getElementById('dateToSearch') as HTMLInputElement;
 
-    [merchantSearchInput, dateFromInput, dateToInput].forEach((input) => {
+    [dateFromInput, dateToInput].forEach((input) => {
       if (input) {
-        input.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') {
-            void this.handlePerformSearch();
-          }
+        input.addEventListener('change', () => {
+          void this.handleUnifiedSearch();
+        });
+      }
+    });
+
+    // Add event listeners for dropdowns in advanced filters
+    const dateRangePicker = document.getElementById('dateRangePicker') as HTMLSelectElement;
+    const statusSelect = document.getElementById('expenseStatus') as HTMLSelectElement;
+
+    [dateRangePicker, statusSelect].forEach((select) => {
+      if (select) {
+        select.addEventListener('change', () => {
+          void this.handleUnifiedSearch();
         });
       }
     });
@@ -319,12 +280,6 @@ export class SidepanelUI {
       duplicateBtn.addEventListener('click', () => void this.handleDuplicateExpense());
     }
 
-    // Save as template button
-    const saveTemplateBtn = document.getElementById('saveAsTemplate');
-    if (saveTemplateBtn) {
-      saveTemplateBtn.addEventListener('click', () => void this.handleSaveAsTemplate());
-    }
-
     // Sorting and filtering controls
     const sortOrder = document.getElementById('sortOrder') as HTMLSelectElement;
     if (sortOrder) {
@@ -336,135 +291,9 @@ export class SidepanelUI {
       itemsPerPage.addEventListener('change', () => this.handlePaginationChange());
     }
 
-    const merchantCategory = document.getElementById('merchantCategory') as HTMLSelectElement;
-    if (merchantCategory) {
-      merchantCategory.addEventListener('change', () => this.handleFilterChange());
-    }
-
-    const expenseStatus = document.getElementById('expenseStatus') as HTMLSelectElement;
-    if (expenseStatus) {
-      expenseStatus.addEventListener('change', () => this.handleFilterChange());
-    }
-
     const clearFilters = document.getElementById('clearFilters');
     if (clearFilters) {
-      clearFilters.addEventListener('click', () => this.handleClearFilters());
-    }
-  }
-
-  private attachTemplateHandlers(): void {
-    // Back to templates button
-    const backBtn = document.getElementById('backToTemplates');
-    if (backBtn) {
-      backBtn.addEventListener('click', () => this.showTemplateList());
-    }
-
-    // Template edit toggle
-    const editToggle = document.getElementById('toggleTemplateEdit');
-    if (editToggle) {
-      editToggle.addEventListener('click', () => this.toggleTemplateEdit());
-    }
-
-    // Save template button
-    const saveBtn = document.getElementById('saveTemplate');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => void this.handleSaveTemplate());
-    }
-
-    // Cancel template edit
-    const cancelBtn = document.getElementById('cancelTemplateEdit');
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => this.cancelTemplateEdit());
-    }
-
-    // Apply template button
-    const applyBtn = document.getElementById('applyTemplate');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', () => {
-        logger.debug('DETAIL_APPLY_BUTTON_CLICK', {
-          templateId: this.state.currentTemplate?.id,
-          timestamp: Date.now(),
-        });
-        void this.handleApplyTemplate();
-      });
-    }
-
-    // Duplicate template button
-    const duplicateBtn = document.getElementById('duplicateTemplate');
-    if (duplicateBtn) {
-      duplicateBtn.addEventListener('click', () => void this.handleDuplicateTemplate());
-    }
-
-    // Delete template button
-    const deleteBtn = document.getElementById('deleteTemplate');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', () => void this.handleDeleteTemplate());
-    }
-
-    // Template dialog handlers
-    const closeDialogBtn = document.getElementById('closeTemplateDialog');
-    if (closeDialogBtn) {
-      closeDialogBtn.addEventListener('click', () => this.closeTemplateDialog());
-    }
-
-    const cancelCreationBtn = document.getElementById('cancelTemplateCreation');
-    if (cancelCreationBtn) {
-      cancelCreationBtn.addEventListener('click', () => this.closeTemplateDialog());
-    }
-
-    const createTemplateBtn = document.getElementById('createTemplate');
-    if (createTemplateBtn) {
-      info('Attaching click listener to createTemplate button');
-      createTemplateBtn.addEventListener('click', () => void this.handleCreateTemplate());
-    } else {
-      error('createTemplate button not found in DOM');
-    }
-
-    // Scheduling handlers
-    const enableScheduling = document.getElementById('enableScheduling') as HTMLInputElement;
-    if (enableScheduling) {
-      enableScheduling.addEventListener('change', () => this.handleSchedulingToggle());
-    }
-
-    // Frequency radio buttons
-    const frequencyRadios = document.querySelectorAll('input[name="frequency"]');
-    frequencyRadios.forEach((radio) => {
-      radio.addEventListener('change', () => this.handleFrequencyChange());
-    });
-
-    // Time input changes
-    const hourSelect = document.getElementById('hour') as HTMLSelectElement;
-    const minuteSelect = document.getElementById('minute') as HTMLSelectElement;
-    const ampmSelect = document.getElementById('ampm') as HTMLSelectElement;
-    const customIntervalSelect = document.getElementById('customInterval') as HTMLSelectElement;
-
-    if (hourSelect) hourSelect.addEventListener('change', () => this.updateSchedulingPreview());
-    if (minuteSelect) minuteSelect.addEventListener('change', () => this.updateSchedulingPreview());
-    if (ampmSelect) ampmSelect.addEventListener('change', () => this.updateSchedulingPreview());
-    if (customIntervalSelect)
-      customIntervalSelect.addEventListener('change', () => this.updateSchedulingPreview());
-
-    // Weekly day checkboxes
-    const dayCheckboxes = document.querySelectorAll('.weekly-settings input[type="checkbox"]');
-    dayCheckboxes.forEach((checkbox) => {
-      checkbox.addEventListener('change', () => this.updateSchedulingPreview());
-    });
-
-    // Monthly day select
-    const dayOfMonthSelect = document.getElementById('dayOfMonth') as HTMLSelectElement;
-    if (dayOfMonthSelect) {
-      dayOfMonthSelect.addEventListener('change', () => this.updateSchedulingPreview());
-    }
-
-    // Pause/Resume scheduling
-    const pauseBtn = document.getElementById('pauseSchedule');
-    if (pauseBtn) {
-      pauseBtn.addEventListener('click', () => void this.handlePauseSchedule());
-    }
-
-    const resumeBtn = document.getElementById('resumeSchedule');
-    if (resumeBtn) {
-      resumeBtn.addEventListener('click', () => void this.handleResumeSchedule());
+      clearFilters.addEventListener('click', () => void this.handleClearAllFilters());
     }
   }
 
@@ -596,19 +425,26 @@ export class SidepanelUI {
     await this.handleFetchExpenses();
   }
 
-  private async handleFetchExpenses(): Promise<void> {
-    info('SidepanelUI: handleFetchExpenses called');
+  private async handleFetchExpenses(filters?: ExpenseFilters): Promise<void> {
+    info('SidepanelUI: handleFetchExpenses called', { filters });
 
     const fetchBtn = document.getElementById('fetchExpenses') as HTMLButtonElement;
     const refreshBtn = document.getElementById('refreshExpenses') as HTMLButtonElement;
     const status = document.getElementById('expensesStatus');
+    const initialStatus = document.getElementById('initialStatus');
     const list = document.getElementById('expensesList');
-    const controls = document.getElementById('expenseControls');
-    const searchSection = document.getElementById('expenseSearch');
+    const _controls = document.getElementById('expenseControls');
+    const _searchSection = document.getElementById('expenseSearch');
+    const resultsContainer = document.getElementById('resultsContainer');
 
     if (!status) {
       error('SidepanelUI: Expenses status element not found');
       return;
+    }
+
+    // Hide initial status message once we start fetching
+    if (initialStatus) {
+      initialStatus.style.display = 'none';
     }
 
     // First check authentication status
@@ -628,7 +464,7 @@ export class SidepanelUI {
           sendMessage: this.sendMessage,
           onAuthenticated: async () => {
             // Retry fetching expenses after successful authentication
-            await this.handleFetchExpenses();
+            await this.handleFetchExpenses(filters);
           },
           onCancel: () => {
             info('SidepanelUI: Authentication cancelled by user');
@@ -648,12 +484,13 @@ export class SidepanelUI {
     status.innerHTML = '<span class="loading-spinner"></span>Fetching expenses...';
     status.className = 'expenses-status';
 
-    info('SidepanelUI: Sending getExpenses message');
+    info('SidepanelUI: Sending getExpenses message with filters');
 
     try {
-      // Fetch all expenses without filters (API doesn't support them)
+      // Pass filters to the service worker
       const response = await this.sendMessage({
         action: 'getExpenses',
+        filters: filters || {},
       });
 
       if (response.success && response.expenses) {
@@ -664,23 +501,14 @@ export class SidepanelUI {
         status.className = 'expenses-status success';
 
         // Show UI elements
-        if (fetchBtn) fetchBtn.style.display = 'none';
         if (refreshBtn) refreshBtn.style.display = 'inline-block';
         if (list) list.style.display = 'block';
-        if (controls) controls.style.display = 'flex';
+        if (resultsContainer) resultsContainer.style.display = 'flex';
 
-        // Show search section based on settings
-        if (searchSection) {
-          const result = await chrome.storage.local.get('expenseSearchEnabled');
-          const isSearchEnabled = result.expenseSearchEnabled !== false; // Default to true
-          searchSection.style.display = isSearchEnabled ? 'block' : 'none';
-        }
+        // Note: controls and searchSection are from the old UI, not needed in new design
 
         // Render expenses
         this.renderExpenses();
-
-        // Also fetch templates
-        await this.fetchTemplates();
       } else {
         status.textContent = (response.error as string) || 'Failed to fetch expenses';
         status.className = 'expenses-status error';
@@ -688,7 +516,7 @@ export class SidepanelUI {
     } catch (err) {
       status.textContent = 'Error fetching expenses';
       status.className = 'expenses-status error';
-      error('Failed to fetch expenses:', { error: err });
+      error('SidepanelUI: Fetch expenses error:', { error: err });
     } finally {
       this.setLoading(false);
       if (fetchBtn) fetchBtn.disabled = false;
@@ -696,34 +524,55 @@ export class SidepanelUI {
     }
   }
 
-  private async fetchTemplates(): Promise<void> {
-    const templatesStatus = document.getElementById('templatesStatus');
+  private async fetchExpensesWithFilters(filters: ExpenseFilters): Promise<void> {
+    // Delegate to handleFetchExpenses with filters
+    await this.handleFetchExpenses(filters);
+  }
 
-    try {
-      const response = await this.sendMessage({ action: 'getTemplates' });
+  private getDateRangeFromPreset(preset: string): { from: string; to: string } | null {
+    const today = new Date();
+    const formatDate = (date: Date): string => {
+      return date.toISOString().split('T')[0];
+    };
 
-      if (response.success && response.templates) {
-        this.state.templates = response.templates as ExpenseTemplate[];
-        if (templatesStatus) {
-          templatesStatus.textContent = `${(response.templates as ExpenseTemplate[]).length} template(s) available`;
-          templatesStatus.className = 'templates-status success';
-        }
-
-        // Always render templates to update the UI, even if the list is empty
-        const templateList = document.getElementById('templateList');
-        if (templateList) {
-          templateList.style.display = 'block';
-          this.renderTemplates();
-        }
+    switch (preset) {
+      case 'last30': {
+        const from = new Date();
+        from.setDate(from.getDate() - 30);
+        return { from: formatDate(from), to: formatDate(today) };
       }
-    } catch (err) {
-      error('Failed to fetch templates:', { error: err });
+      case 'thisMonth': {
+        const from = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { from: formatDate(from), to: formatDate(today) };
+      }
+      case 'lastMonth': {
+        const from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const to = new Date(today.getFullYear(), today.getMonth(), 0);
+        return { from: formatDate(from), to: formatDate(to) };
+      }
+      case 'last3Months': {
+        const from = new Date();
+        from.setMonth(from.getMonth() - 3);
+        return { from: formatDate(from), to: formatDate(today) };
+      }
+      case 'thisYear': {
+        const from = new Date(today.getFullYear(), 0, 1);
+        return { from: formatDate(from), to: formatDate(today) };
+      }
+      default:
+        return null;
     }
   }
 
   private renderExpenses(): void {
     const list = document.getElementById('expensesList');
     if (!list || !this.state.expenses.length) return;
+
+    // Show results container
+    const resultsContainer = document.getElementById('resultsContainer');
+    if (resultsContainer) {
+      resultsContainer.style.display = 'flex';
+    }
 
     // Get filter values
     const statusFilter = (document.getElementById('expenseStatus') as HTMLSelectElement)?.value;
@@ -732,7 +581,8 @@ export class SidepanelUI {
     const itemsPerPage = parseInt(
       (document.getElementById('itemsPerPage') as HTMLSelectElement)?.value || '20'
     );
-    const sortOrder = (document.getElementById('sortOrder') as HTMLSelectElement)?.value;
+    const sortOrder =
+      (document.getElementById('sortOrder') as HTMLSelectElement)?.value || 'date-desc';
 
     // Filter expenses
     let filteredExpenses = [...this.state.expenses];
@@ -815,83 +665,6 @@ export class SidepanelUI {
         const expenseId = item.getAttribute('data-expense-id');
         if (expenseId) {
           void this.showExpenseDetail(expenseId);
-        }
-      });
-    });
-  }
-
-  private renderTemplates(): void {
-    logger.debug('RENDER_TEMPLATES', {
-      count: this.state.templates.length,
-      timestamp: Date.now(),
-    });
-
-    const listContent = document.getElementById('templateListContent');
-    if (!listContent) return;
-
-    if (this.state.templates.length === 0) {
-      listContent.innerHTML = `
-        <div class="template-empty">
-          <h4>No templates yet</h4>
-          <p>Save expenses as templates to reuse them later</p>
-        </div>
-      `;
-      return;
-    }
-
-    listContent.innerHTML = this.state.templates
-      .map(
-        (template) => `
-      <div class="template-item" data-template-id="${template.id}">
-        <div class="template-header">
-          <div class="template-name">${template.name}</div>
-          <div class="template-actions">
-            <button class="btn-icon" data-action="edit" title="Edit">✏️</button>
-            <button class="btn-icon" data-action="duplicate" title="Duplicate">📋</button>
-            <button class="btn-icon" data-action="delete" title="Delete">🗑️</button>
-          </div>
-        </div>
-        <div class="template-details">
-          <div class="template-merchant">${template.expenseData.merchant?.name || 'Unknown Merchant'}</div>
-          <div class="template-amount">${template.expenseData.merchantCurrency || 'USD'} ${template.expenseData.merchantAmount || 0}</div>
-          <div class="template-meta">
-            <span>Used ${template.metadata?.useCount || 0} times</span>
-            ${template.scheduling?.enabled ? '<span class="scheduling-indicator active"><span class="icon-clock"></span> Scheduled</span>' : ''}
-          </div>
-        </div>
-        <div class="template-footer">
-          <button class="btn btn-primary btn-sm" data-action="apply">Apply Template</button>
-        </div>
-      </div>
-    `
-      )
-      .join('');
-
-    // Attach event handlers to template actions
-    listContent.querySelectorAll('.template-item').forEach((item) => {
-      const templateId = item.getAttribute('data-template-id');
-      if (!templateId) return;
-
-      item.querySelectorAll('[data-action]').forEach((actionBtn) => {
-        actionBtn.addEventListener('click', (e) => {
-          logger.debug('CARD_BUTTON_CLICK', {
-            action: actionBtn.getAttribute('data-action'),
-            templateId,
-            timestamp: Date.now(),
-            bubbles: e.bubbles,
-            eventPhase: e.eventPhase,
-          });
-          e.stopPropagation();
-          e.preventDefault(); // Also prevent default behavior
-          const action = actionBtn.getAttribute('data-action');
-          this.handleTemplateAction(templateId, action);
-        });
-      });
-
-      // Click on template item shows detail
-      item.addEventListener('click', (e) => {
-        if (!(e.target as HTMLElement).hasAttribute('data-action')) {
-          void this.showTemplateDetail(templateId);
         }
       });
     });
@@ -987,9 +760,7 @@ export class SidepanelUI {
              target="_blank" 
              rel="noopener noreferrer"
              class="open-in-navan-link"
-             title="Open expense ${expenseId} in Navan web app">
-            Open expense ${expenseId} in Navan 
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-left: 4px;">
+              title="Open expense in Navan web app">             Open in Navan            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-left: 4px;">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
               <line x1="10" y1="14" x2="21" y2="3"></line>
@@ -1011,13 +782,13 @@ export class SidepanelUI {
 
       detailContent.innerHTML = detailHTML;
 
-      // Add receipt upload section
-      const receiptContainer = document.createElement('div');
-      receiptContainer.id = 'expenseDetailReceiptSection';
-      detailContent.appendChild(receiptContainer);
+      // Receipt section removed as per task requirements
+      // const receiptContainer = document.createElement('div');
+      // receiptContainer.id = 'expenseDetailReceiptSection';
+      // detailContent.appendChild(receiptContainer);
 
       // Initialize receipt upload component with full expense data
-      this.initializeReceiptUpload(expenseId, receiptContainer, fullExpenseData || undefined);
+      // this.initializeReceiptUpload(expenseId, receiptContainer, fullExpenseData || undefined);
 
       // Add event listener for customize fields button
       const customizeBtn = detailContent.querySelector('#customizeFields');
@@ -1132,29 +903,21 @@ export class SidepanelUI {
     this.currentReceiptComponent.render();
   }
 
-  private async showTemplateDetail(templateId: string): Promise<void> {
-    const template = this.state.templates.find((t) => t.id === templateId);
-    if (!template) return;
+  // Template UI methods (stubbed since template UI was removed)
+  private async fetchTemplates(): Promise<void> {
+    // Template UI removed - this method is now a stub
+  }
 
-    this.state.currentTemplate = template;
-
-    // Hide list, show detail
-    const templateList = document.getElementById('templateList');
-    const templateDetail = document.getElementById('templateDetail');
-
-    if (templateList) templateList.style.display = 'none';
-    if (templateDetail) templateDetail.style.display = 'block';
-
-    // Update detail view
-    this.updateTemplateDetailView();
+  private renderTemplates(): void {
+    // Template UI removed - this method is now a stub
   }
 
   private showTemplateList(): void {
-    const templateList = document.getElementById('templateList');
-    const templateDetail = document.getElementById('templateDetail');
+    // Template UI removed - this method is now a stub
+  }
 
-    if (templateList) templateList.style.display = 'block';
-    if (templateDetail) templateDetail.style.display = 'none';
+  private async showTemplateDetail(_templateId: string): Promise<void> {
+    // Template UI removed - this method is now a stub
   }
 
   private updateTemplateDetailView(): void {
@@ -2524,8 +2287,162 @@ export class SidepanelUI {
     this.renderExpenses();
   }
 
+  private async handleUnifiedSearch(): Promise<void> {
+    const unifiedSearchInput = document.getElementById('unifiedSearch') as HTMLInputElement;
+    const searchQuery = unifiedSearchInput?.value.trim() || '';
+
+    // Build filters for API request
+    const filters: ExpenseFilters = {};
+
+    // Use the 'q' parameter for merchant search
+    if (searchQuery) {
+      filters.q = searchQuery;
+    }
+
+    // Check if advanced filters are visible
+    const advancedFilters = document.getElementById('advancedFilters');
+    if (advancedFilters && advancedFilters.classList.contains('open')) {
+      // Add date range filter if selected
+      const dateRangePicker = document.getElementById('dateRangePicker') as HTMLSelectElement;
+      if (
+        dateRangePicker?.value &&
+        dateRangePicker.value !== 'custom' &&
+        dateRangePicker.value !== ''
+      ) {
+        const dateRange = this.getDateRangeFromPreset(dateRangePicker.value);
+        if (dateRange) {
+          filters.dateFrom = dateRange.from;
+          filters.dateTo = dateRange.to;
+        }
+      }
+
+      // Add custom date range if specified
+      const dateFromInput = document.getElementById('dateFromSearch') as HTMLInputElement;
+      const dateToInput = document.getElementById('dateToSearch') as HTMLInputElement;
+      if (dateFromInput?.value) {
+        filters.dateFrom = dateFromInput.value;
+      }
+      if (dateToInput?.value) {
+        filters.dateTo = dateToInput.value;
+      }
+
+      // Add status filter if selected
+      const statusSelect = document.getElementById('expenseStatus') as HTMLSelectElement;
+      if (statusSelect?.value) {
+        filters.status = statusSelect.value;
+      }
+    }
+
+    // Update search state
+    this.state.searchActive = searchQuery.length > 0;
+    this.state.searchFilters = filters;
+
+    // Make API call with filters
+    await this.fetchExpensesWithFilters(filters);
+  }
+
+  private toggleAdvancedFilters(): void {
+    const advancedFilters = document.getElementById('advancedFilters');
+    const advancedToggle = document.getElementById('advancedToggle');
+
+    if (advancedFilters && advancedToggle) {
+      const isOpen = advancedFilters.classList.contains('open');
+
+      if (isOpen) {
+        advancedFilters.classList.remove('open');
+        advancedToggle.classList.remove('active');
+        advancedToggle.innerHTML = '<span style="margin-right: 4px;">⚙️</span> More filters';
+      } else {
+        advancedFilters.classList.add('open');
+        advancedToggle.classList.add('active');
+        advancedToggle.innerHTML = '<span style="margin-right: 4px;">⚙️</span> Hide filters';
+      }
+    }
+  }
+
+  private async handleExportExpenses(): Promise<void> {
+    // Export functionality - can be implemented to export to CSV/JSON
+    info('Export expenses requested');
+
+    if (this.state.expenses.length === 0) {
+      this.showToast('No expenses to export', 'error');
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Date', 'Merchant', 'Amount', 'Currency', 'Category', 'Status', 'ID'];
+    const rows = this.state.expenses.map((expense) => {
+      const displayData = getSearchTransactionDisplayData(expense);
+      return [
+        new Date(displayData.date).toLocaleDateString(),
+        displayData.merchant,
+        displayData.amount.toFixed(2),
+        displayData.currency,
+        displayData.category || 'Uncategorized',
+        displayData.status || 'Unknown',
+        displayData.id,
+      ];
+    });
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+    ].join('\\n');
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expenses_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    this.showToast('Expenses exported successfully', 'success');
+  }
+
+  private async handleClearAllFilters(): Promise<void> {
+    // Clear all filter inputs
+    const unifiedSearch = document.getElementById('unifiedSearch') as HTMLInputElement;
+    const dateRangePicker = document.getElementById('dateRangePicker') as HTMLSelectElement;
+    const merchantCategory = document.getElementById('merchantCategory') as HTMLSelectElement;
+    const expenseStatus = document.getElementById('expenseStatus') as HTMLSelectElement;
+
+    // Clear advanced filters
+    const merchantSearch = document.getElementById('merchantSearch') as HTMLInputElement;
+    const amountRange = document.getElementById('amountRange') as HTMLInputElement;
+    const descriptionSearch = document.getElementById('descriptionSearch') as HTMLInputElement;
+    const transactionIdSearch = document.getElementById('transactionIdSearch') as HTMLInputElement;
+    const dateFromSearch = document.getElementById('dateFromSearch') as HTMLInputElement;
+    const dateToSearch = document.getElementById('dateToSearch') as HTMLInputElement;
+
+    if (unifiedSearch) unifiedSearch.value = '';
+    if (dateRangePicker) dateRangePicker.value = 'last30';
+    if (merchantCategory) merchantCategory.value = '';
+    if (expenseStatus) expenseStatus.value = '';
+
+    if (merchantSearch) merchantSearch.value = '';
+    if (amountRange) amountRange.value = '';
+    if (descriptionSearch) descriptionSearch.value = '';
+    if (transactionIdSearch) transactionIdSearch.value = '';
+    if (dateFromSearch) dateFromSearch.value = '';
+    if (dateToSearch) dateToSearch.value = '';
+
+    // Reset state
+    this.state.searchActive = false;
+    this.state.searchFilters = {};
+
+    // Refresh the list
+    await this.handleFetchExpenses();
+  }
+
   private setLoading(loading: boolean): void {
     this.state.isLoading = loading;
+  }
+
+  private updateExpenseList(): void {
+    // Wrapper method for renderExpenses to maintain consistency
+    this.renderExpenses();
   }
 
   private initializeCollapsibleSections(): void {
@@ -2633,17 +2550,6 @@ export class SidepanelUI {
       info('Dark mode preference saved:', isDarkMode);
     } catch (err) {
       error('Failed to save dark mode preference:', { error: err });
-    }
-  }
-
-  private injectHelpContent(): void {
-    const helpContentDiv = document.getElementById('helpContent');
-    if (helpContentDiv) {
-      const builder = new HelpContentBuilder();
-      helpContentDiv.innerHTML = builder.build(HELP_CONTENT);
-      logger.debug('Help content injected successfully');
-    } else {
-      logger.warn('Help content container not found');
     }
   }
 

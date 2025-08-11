@@ -33,6 +33,7 @@
 - [Message API](./api/message-api.md)
 - [Storage API](./api/storage-api.md)
 - [Expense API](./api/expense-api.md)
+- [Navan Search API Specification](./api/navan-search-api-spec.md)
 - [JSON Data Structures](./api/json-structures.md)
 
 ---

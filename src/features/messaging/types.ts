@@ -103,6 +103,9 @@ export enum MessageAction {
   ATTACH_RECEIPT = 'attachReceipt', // Attach receipt to expense
   DELETE_RECEIPT = 'deleteReceipt', // Delete receipt from expense
   GET_RECEIPT_URL = 'getReceiptUrl', // Get presigned URL for viewing receipt
+
+  // Testing Operations
+  TEST_API_PARAMETERS = 'testApiParameters', // Test which query parameters are supported by the API
 }
 
 export type BackgroundMessage =
@@ -147,7 +150,10 @@ export type BackgroundMessage =
   // Receipt operations
   | AttachReceiptMessage
   | DeleteReceiptMessage
-  | GetReceiptUrlMessage;
+  | GetReceiptUrlMessage
+
+  // Testing operations
+  | { action: MessageAction.TEST_API_PARAMETERS };
 
 export interface MessageResponse<T = unknown> {
   success: boolean;

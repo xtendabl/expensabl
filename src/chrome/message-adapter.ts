@@ -115,6 +115,7 @@ export class MessageAdapter {
       case 'getExpenses':
         return {
           action: MessageAction.FETCH_EXPENSES,
+          payload: uiMessage.filters,
         };
 
       case 'searchExpenses':
