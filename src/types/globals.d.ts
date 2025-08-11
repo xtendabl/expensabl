@@ -11,3 +11,22 @@ declare namespace NodeJS {
     LOGGER_LEVEL?: string;
   }
 }
+
+// Chrome extension window extensions
+interface ApiTestResult {
+  parameter: string;
+  value: string | number | boolean;
+  status: 'success' | 'error';
+  message?: string;
+  responseCode?: number;
+}
+
+declare global {
+  interface Window {
+    testApiParameters?: () => Promise<void | ApiTestResult[]>;
+    sendMessage?: (message: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    sidepanelUI?: any;
+  }
+}
+
+export {};

@@ -148,8 +148,7 @@ export async function testApiParameters(): Promise<ApiTestResult[] | void> {
 
 // Make function available globally in the side panel
 if (typeof window !== 'undefined') {
-  (window as Window & { testApiParameters: typeof testApiParameters }).testApiParameters =
-    testApiParameters;
+  window.testApiParameters = testApiParameters;
   // eslint-disable-next-line no-console
   console.log('💡 API Parameter Tester loaded!');
   // eslint-disable-next-line no-console
