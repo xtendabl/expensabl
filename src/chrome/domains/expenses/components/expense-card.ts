@@ -32,24 +32,53 @@ export class ExpenseCard extends BaseComponent<ExpenseCardProps> {
     const expenseId = expense.uuid || (expense as ExpenseData & { id?: string }).id || '';
 
     return `
-      <div class="expense-item" data-expense-id="${expenseId}">
-        <div class="expense-main">
-          <div class="expense-merchant">${this.escapeHtml(merchantName)}</div>
-          <div class="expense-details">${formattedDate} • ${this.escapeHtml(policy)}</div>
-          <span class="expense-status ${statusClass}">${status.toUpperCase()}</span>
+      <div class="expense-item" 
+           data-expense-id="${expenseId}"
+           role="button"
+           tabindex="0"
+           aria-label="View details for ${this.escapeHtml(merchantName)} expense of ${formattedAmount}">
+        <div class="expense-content">
+          <div class="expense-left">
+            <div class="expense-merchant">${this.escapeHtml(merchantName)}</div>
+            <div class="expense-meta">
+              <span class="expense-date">${formattedDate}</span>
+              <span class="expense-category">${this.escapeHtml(policy)}</span>
+              <span class="expense-id">${expenseId}</span>
+            </div>
+            <div class="expense-status-container">
+              <span class="expense-status ${statusClass}">${status.toUpperCase()}</span>
+            </div>
+          </div>
+          <div class="expense-right">
+            <div class="expense-amount">${formattedAmount}</div>
+            <div class="expense-expand-indicator">
+              <span class="open-indicator">OPEN EXPENSE</span>
+            </div>
+          </div>
         </div>
-        <div class="expense-amount">${formattedAmount}</div>
-        <div class="expense-arrow">›</div>
       </div>
     `;
   }
 
   protected attachEventListeners(): void {
     if (this.props.onClick) {
+      // Handle click events
       this.addEventListener(this.element!, 'click', () => {
         const expenseId = this.element?.getAttribute('data-expense-id');
         if (expenseId && this.props.onClick) {
           this.props.onClick(expenseId);
+        }
+      });
+
+      // Handle keyboard navigation (Enter and Space)
+      this.addEventListener(this.element!, 'keydown', (event: Event) => {
+        const keyboardEvent = event as KeyboardEvent;
+        if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+          keyboardEvent.preventDefault();
+          const expenseId = this.element?.getAttribute('data-expense-id');
+          if (expenseId && this.props.onClick) {
+            this.props.onClick(expenseId);
+          }
         }
       });
     }

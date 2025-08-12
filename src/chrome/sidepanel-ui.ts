@@ -643,17 +643,25 @@ export class SidepanelUI {
 
         return `
       <div class="expense-item" data-expense-id="${displayData.id}">
-        <div class="expense-main">
-          <div class="expense-merchant">${displayData.merchant}</div>
-          <div class="expense-details">${new Date(displayData.date).toLocaleDateString()} • ${displayData.category || 'Uncategorized'}</div>
-          <div class="expense-details">${expense.policyName || 'No description'}</div>
-          <div class="expense-id">ID: ${displayData.id}</div>
-          ${displayData.status ? `<span class="expense-status ${displayData.status.toLowerCase()}">${displayData.status}</span>` : ''}
+        <div class="expense-content">
+          <div class="expense-left">
+            <div class="expense-merchant">${displayData.merchant}</div>
+            <div class="expense-meta">
+              <span class="expense-date">${new Date(displayData.date).toLocaleDateString()}</span>
+              <span class="expense-category">${displayData.category || 'Uncategorized'}</span>
+              <span class="expense-id">ID: ${displayData.id}</span>
+            </div>
+            <div class="expense-status-container">
+              ${displayData.status ? `<span class="expense-status ${displayData.status.toLowerCase()}">${displayData.status}</span>` : ''}
+            </div>
+          </div>
+          <div class="expense-right">
+            <div class="expense-amount">${displayData.currency} ${displayData.amount.toFixed(2)}</div>
+            <div class="expense-expand-indicator">
+              <span class="open-indicator">OPEN EXPENSE</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <div class="expense-amount">${displayData.currency} ${displayData.amount.toFixed(2)}</div>
-        </div>
-        <div class="expense-arrow">›</div>
       </div>
     `;
       })
