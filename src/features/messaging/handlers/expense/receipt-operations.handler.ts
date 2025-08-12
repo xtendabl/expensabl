@@ -12,6 +12,7 @@ import {
   ReceiptAttachResponse,
   ReceiptUrlResponse,
 } from '../../types';
+import { sanitizePayloadQuick } from '../../../../shared/utils/payload-sanitizer';
 
 /**
  * Unified handler for all receipt operations
@@ -31,11 +32,49 @@ export class ReceiptOperationsHandler {
       ): Promise<MessageResponse<ReceiptAttachResponse>> {
         try {
           const { expenseId, filename, mimeType, size, data, isBase64 } = message.payload;
+          const operationId = `attach_receipt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+          // Log receipt upload initiation with payload analysis
+          deps.logger.info('RECEIPT_HANDLER: Receipt upload initiated', {
+            operation: 'attachReceipt',
+            operationId,
+            requestPayload: sanitizePayloadQuick({
+              expenseId,
+              filename,
+              mimeType,
+              size,
+              isBase64,
+              dataType: typeof data,
+              dataSize:
+                data instanceof ArrayBuffer
+                  ? data.byteLength
+                  : typeof data === 'string'
+                    ? data.length
+                    : 0,
+            }),
+            fileMetadata: {
+              filename,
+              mimeType,
+              sizeBytes: size,
+              sizeMB: (size / 1024 / 1024).toFixed(2),
+              isBase64Encoded: isBase64,
+            },
+            timestamp: Date.now(),
+          });
 
           // Convert base64 to ArrayBuffer if needed
           let fileData: ArrayBuffer;
           if (isBase64 && typeof data === 'string') {
+            const conversionStart = performance.now();
             fileData = this.base64ToArrayBuffer(data);
+            const conversionTime = Math.round(performance.now() - conversionStart);
+
+            deps.logger.debug('RECEIPT_HANDLER: Base64 conversion completed', {
+              operationId,
+              conversionTime,
+              originalSize: data.length,
+              convertedSize: fileData.byteLength,
+            });
           } else if (data instanceof ArrayBuffer) {
             fileData = data;
           } else {
@@ -45,7 +84,18 @@ export class ReceiptOperationsHandler {
           // Create File object
           const file = new File([fileData], filename, { type: mimeType });
 
-          // Validate file type
+          // Log file creation
+          deps.logger.debug('RECEIPT_HANDLER: File object created', {
+            operationId,
+            fileProperties: {
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              lastModified: file.lastModified,
+            },
+          });
+
+          // Validate file type with detailed logging
           const supportedTypes = [
             'application/pdf',
             'image/jpeg',
@@ -57,10 +107,26 @@ export class ReceiptOperationsHandler {
           const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
           const supportedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
 
-          if (
-            !supportedTypes.includes(mimeType.toLowerCase()) &&
-            !supportedExtensions.includes(fileExtension)
-          ) {
+          const typeValidation = {
+            mimeTypeSupported: supportedTypes.includes(mimeType.toLowerCase()),
+            extensionSupported: supportedExtensions.includes(fileExtension),
+            fileExtension,
+            mimeType: mimeType.toLowerCase(),
+          };
+
+          deps.logger.info('RECEIPT_HANDLER: File type validation', {
+            operationId,
+            validation: typeValidation,
+            isValid: typeValidation.mimeTypeSupported || typeValidation.extensionSupported,
+          });
+
+          if (!typeValidation.mimeTypeSupported && !typeValidation.extensionSupported) {
+            deps.logger.error('RECEIPT_HANDLER: Unsupported file type', {
+              operationId,
+              validation: typeValidation,
+              supportedTypes,
+              supportedExtensions,
+            });
             throw new Error(
               `Unsupported file type. Please upload PDF, JPG, PNG, GIF, or WEBP files.`
             );
@@ -75,20 +141,56 @@ export class ReceiptOperationsHandler {
           // Normalize jpeg to jpg
           if (fileType === 'jpeg') fileType = 'jpg';
 
+          deps.logger.info('RECEIPT_HANDLER: File type detection completed', {
+            operationId,
+            detectedType: fileType,
+            detectionMethod: fileExtension ? 'extension' : 'mimeType',
+            originalExtension: fileExtension,
+            originalMimeType: mimeType,
+          });
+
+          // Create FormData for multipart upload with comprehensive logging
+          const formData = new FormData();
+          formData.append('receipt', file, filename);
+          formData.append('type', fileType);
+
+          // Log FormData structure before upload
+          const formDataStructure = this.logFormDataStructure(formData, operationId);
+          deps.logger.info('RECEIPT_HANDLER: FormData prepared for upload', {
+            operationId,
+            formDataStructure,
+            fieldCount: Array.from(formData.keys()).length,
+            totalSize: file.size + fileType.length, // Approximate total size
+          });
+
           deps.logger.info('Uploading receipt', {
             expenseId,
             filename,
             fileType,
             size: `${(size / 1024 / 1024).toFixed(2)}MB`,
+            operationId,
           });
 
-          // Create FormData for multipart upload
-          const formData = new FormData();
-          formData.append('receipt', file, filename);
-          formData.append('type', fileType);
-
-          // Upload receipt using receipt service
+          // Upload receipt using receipt service with timing
+          const uploadStart = performance.now();
           const result = await deps.receiptService.uploadReceipt(expenseId, formData);
+          const uploadTime = Math.round(performance.now() - uploadStart);
+
+          // Log successful upload completion
+          deps.logger.info('RECEIPT_HANDLER: Receipt upload completed successfully', {
+            operation: 'attachReceipt',
+            operationId,
+            success: true,
+            result: sanitizePayloadQuick(result),
+            timing: { uploadTime },
+            metadata: {
+              expenseId,
+              filename,
+              fileType,
+              receiptKey: result.receiptKey,
+              uploadSizeMB: (size / 1024 / 1024).toFixed(2),
+            },
+          });
 
           return createSuccessResponse<ReceiptAttachResponse>({
             receiptKey: result.receiptKey,
@@ -124,6 +226,41 @@ export class ReceiptOperationsHandler {
             `Failed to decode base64 to ArrayBuffer: ${error instanceof Error ? error.message : String(error)}`
           );
         }
+      }
+
+      /**
+       * Log FormData structure for debugging
+       */
+      private logFormDataStructure(
+        formData: FormData,
+        operationId: string
+      ): Record<string, unknown> {
+        const structure: Record<string, unknown> = {};
+
+        for (const [key, value] of formData.entries()) {
+          if (value instanceof File) {
+            structure[key] = {
+              type: 'File',
+              name: value.name,
+              size: value.size,
+              mimeType: value.type,
+              lastModified: value.lastModified,
+            };
+          } else {
+            structure[key] = {
+              type: 'string',
+              value: sanitizePayloadQuick(value),
+              length: String(value).length,
+            };
+          }
+        }
+
+        return {
+          operationId,
+          fields: structure,
+          fieldCount: Array.from(formData.keys()).length,
+          hasFiles: Array.from(formData.values()).some((v) => v instanceof File),
+        };
       }
     })();
   }

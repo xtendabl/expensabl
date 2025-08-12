@@ -5,6 +5,7 @@ const storageManager = new StorageManager(chromeStorageProvider);
 import { debug, info, warn, error } from '../../shared/services/logger/chrome-logger-setup';
 import { AuthStatus, TokenData, TokenValidator } from './types';
 import { TripActionsTokenValidator } from './validators/token-validator';
+import { sanitizePayloadQuick } from '../../shared/utils/payload-sanitizer';
 
 const TOKEN_STORAGE_KEY = 'auth-token';
 const TOKEN_EXPIRY_HOURS = 24;
@@ -27,21 +28,66 @@ export class AuthManager {
    * @returns true if the token was saved successfully, false if validation failed
    */
   async save(token: string, source: string): Promise<boolean> {
-    info('AuthManager.save: Attempting to save token', {
+    const operationStart = performance.now();
+    const operationId = `auth_save_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    // Comprehensive token analysis for debugging
+    const tokenAnalysis = {
+      length: token?.length || 0,
+      isEmpty: !token || token.length === 0,
+      hasPrefix: token?.startsWith(this.validator.getPrefix()) || false,
+      expectedPrefix: this.validator.getPrefix(),
+      preview: token ? `${token.substring(0, 15)}...` : 'empty',
+      structure: {
+        startsWithBearer: token?.toLowerCase().startsWith('bearer ') || false,
+        startsWithTripActions: token?.toLowerCase().startsWith('tripactions') || false,
+        containsSpaces: token?.includes(' ') || false,
+        containsDashes: token?.includes('-') || false,
+        containsUnderscores: token?.includes('_') || false,
+      },
+    };
+
+    info('AUTH_FLOW: Token save initiated', {
+      operation: 'saveToken',
+      operationId,
       source,
-      tokenPreview: token ? `${token.substring(0, 15)}...` : 'empty',
+      tokenAnalysis,
+      timestamp: Date.now(),
     });
 
-    if (!this.validator.validate(token)) {
-      warn('AuthManager.save: Invalid token format', {
+    // Detailed validation logging
+    const validationStart = performance.now();
+    const isValid = this.validator.validate(token);
+    const validationTime = Math.round(performance.now() - validationStart);
+
+    info('AUTH_FLOW: Token validation completed', {
+      operationId,
+      validation: {
+        isValid,
+        validationTime,
         source,
-        tokenLength: token?.length || 0,
-        hasPrefix: token?.startsWith(this.validator.getPrefix()) || false,
+        tokenAnalysis,
+        validatorType: this.validator.constructor.name,
+      },
+    });
+
+    if (!isValid) {
+      warn('AUTH_FLOW: Token validation failed', {
+        operationId,
+        source,
+        validationFailure: {
+          reason: 'Format validation failed',
+          tokenAnalysis,
+          expectedPrefix: this.validator.getPrefix(),
+          actualPrefix: token?.substring(0, 20) || 'empty',
+        },
+        timing: { validationTime },
       });
       return false;
     }
 
     try {
+      const storageStart = performance.now();
       const data: TokenData = {
         token,
         source,
@@ -53,13 +99,41 @@ export class AuthManager {
       await this.storage.execute(async (tx) => {
         tx.set(TOKEN_STORAGE_KEY, data);
       });
-      info('AuthManager.save: Token saved successfully', { source });
+
+      const storageTime = Math.round(performance.now() - storageStart);
+      const totalTime = Math.round(performance.now() - operationStart);
+
+      info('AUTH_FLOW: Token saved successfully', {
+        operationId,
+        source,
+        success: true,
+        timing: {
+          total: totalTime,
+          validation: validationTime,
+          storage: storageTime,
+        },
+        tokenMetadata: sanitizePayloadQuick({
+          source,
+          capturedAt: data.capturedAt,
+          expiresAt: data.expiresAt,
+          expiryHours: TOKEN_EXPIRY_HOURS,
+        }),
+      });
+
       return true;
     } catch (err) {
-      error('AuthManager.save: Failed to save token', {
-        error: err,
+      const errorTime = Math.round(performance.now() - operationStart);
+
+      error('AUTH_FLOW: Token save failed', {
+        operationId,
         source,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime, validation: validationTime },
+        tokenAnalysis,
       });
+
       return false;
     }
   }
@@ -70,31 +144,113 @@ export class AuthManager {
    * @returns The token string if a valid non-expired token exists, null otherwise
    */
   async get(): Promise<string | null> {
-    debug('AuthManager.get: Retrieving token');
+    const operationStart = performance.now();
+    const operationId = `auth_get_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    debug('AUTH_FLOW: Token retrieval initiated', {
+      operation: 'getToken',
+      operationId,
+      timestamp: Date.now(),
+    });
 
     try {
+      const storageStart = performance.now();
       const data = await this.storage.execute(async (tx) => {
         return await tx.get<TokenData>(TOKEN_STORAGE_KEY);
       });
+      const storageTime = Math.round(performance.now() - storageStart);
 
       if (!data) {
-        debug('AuthManager.get: No token found');
+        const totalTime = Math.round(performance.now() - operationStart);
+        info('AUTH_FLOW: No token found in storage', {
+          operationId,
+          result: 'no_token',
+          timing: { total: totalTime, storage: storageTime },
+        });
         return null;
       }
 
-      if (this.isExpired(data)) {
-        warn('AuthManager.get: Token has expired');
-        return null;
-      }
+      // Analyze token data
+      const now = Date.now();
+      const tokenAge = now - data.capturedAt;
+      const timeUntilExpiry = data.expiresAt ? data.expiresAt - now : 0;
+      const isExpired = this.isExpired(data);
 
-      debug('AuthManager.get: Token retrieved', {
+      const tokenMetadata = {
         source: data.source,
-        age: `${Math.round((Date.now() - data.capturedAt) / 1000 / 60)} minutes`,
+        capturedAt: data.capturedAt,
+        lastUsed: data.lastUsed,
+        expiresAt: data.expiresAt,
+        age: {
+          milliseconds: tokenAge,
+          minutes: Math.round(tokenAge / 1000 / 60),
+          hours: Math.round(tokenAge / 1000 / 60 / 60),
+        },
+        expiry: {
+          timeUntilExpiry,
+          minutesUntilExpiry: Math.round(timeUntilExpiry / 1000 / 60),
+          isExpired,
+          isNearExpiry: timeUntilExpiry < 60 * 60 * 1000, // Less than 1 hour
+        },
+      };
+
+      if (isExpired) {
+        const totalTime = Math.round(performance.now() - operationStart);
+        warn('AUTH_FLOW: Token has expired', {
+          operationId,
+          result: 'expired_token',
+          tokenMetadata,
+          timing: { total: totalTime, storage: storageTime },
+          expiredBy: {
+            milliseconds: Math.abs(timeUntilExpiry),
+            minutes: Math.round(Math.abs(timeUntilExpiry) / 1000 / 60),
+          },
+        });
+        return null;
+      }
+
+      const totalTime = Math.round(performance.now() - operationStart);
+
+      info('AUTH_FLOW: Valid token retrieved', {
+        operationId,
+        result: 'valid_token',
+        tokenMetadata: sanitizePayloadQuick(tokenMetadata),
+        timing: { total: totalTime, storage: storageTime },
+        tokenHealth: {
+          isValid: true,
+          isNearExpiry: tokenMetadata.expiry.isNearExpiry,
+          ageCategory:
+            tokenAge < 60 * 60 * 1000
+              ? 'fresh'
+              : tokenAge < 12 * 60 * 60 * 1000
+                ? 'moderate'
+                : 'old',
+        },
       });
+
+      // Update last used timestamp
+      try {
+        await this.storage.execute(async (tx) => {
+          tx.set(TOKEN_STORAGE_KEY, { ...data, lastUsed: now });
+        });
+        debug('AUTH_FLOW: Token last used timestamp updated', { operationId });
+      } catch (updateErr) {
+        warn('AUTH_FLOW: Failed to update last used timestamp', {
+          operationId,
+          error: updateErr instanceof Error ? updateErr.message : 'Unknown error',
+        });
+      }
 
       return data.token;
     } catch (err) {
-      error('AuthManager.get: Failed to retrieve token', { error: err });
+      const errorTime = Math.round(performance.now() - operationStart);
+      error('AUTH_FLOW: Token retrieval failed', {
+        operationId,
+        result: 'retrieval_error',
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+      });
       return null;
     }
   }
@@ -103,14 +259,51 @@ export class AuthManager {
    * Removes the stored token.
    */
   async clear(): Promise<void> {
-    info('AuthManager.clear: Clearing stored token');
+    const operationStart = performance.now();
+    const operationId = `auth_clear_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    info('AUTH_FLOW: Token clear initiated', {
+      operation: 'clearToken',
+      operationId,
+      timestamp: Date.now(),
+    });
 
     try {
+      // Get current token data before clearing for logging
+      const currentData = await this.storage.execute(async (tx) => {
+        return await tx.get<TokenData>(TOKEN_STORAGE_KEY);
+      });
+
+      const clearStart = performance.now();
       await this.storage.execute(async (tx) => {
         tx.remove(TOKEN_STORAGE_KEY);
       });
+      const clearTime = Math.round(performance.now() - clearStart);
+      const totalTime = Math.round(performance.now() - operationStart);
+
+      info('AUTH_FLOW: Token cleared successfully', {
+        operationId,
+        success: true,
+        timing: { total: totalTime, clear: clearTime },
+        clearedTokenMetadata: currentData
+          ? sanitizePayloadQuick({
+              source: currentData.source,
+              capturedAt: currentData.capturedAt,
+              age: Date.now() - currentData.capturedAt,
+              wasExpired: this.isExpired(currentData),
+            })
+          : null,
+        hadToken: !!currentData,
+      });
     } catch (err) {
-      error('AuthManager.clear: Failed to clear token', { error: err });
+      const errorTime = Math.round(performance.now() - operationStart);
+      error('AUTH_FLOW: Token clear failed', {
+        operationId,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+      });
     }
   }
 
@@ -130,28 +323,108 @@ export class AuthManager {
    * @returns Promise resolving to detailed authentication status
    */
   async getAuthStatus(): Promise<AuthStatus> {
-    debug('AuthManager.getAuthStatus: Getting auth status');
+    const operationStart = performance.now();
+    const operationId = `auth_status_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    debug('AUTH_FLOW: Authentication status check initiated', {
+      operation: 'getAuthStatus',
+      operationId,
+      timestamp: Date.now(),
+    });
 
     try {
       const data = await this.storage.execute(async (tx) => {
         return await tx.get<TokenData>(TOKEN_STORAGE_KEY);
       });
 
+      const totalTime = Math.round(performance.now() - operationStart);
+
       if (!data || !data.token) {
+        info('AUTH_FLOW: Authentication status - NOT_AUTHENTICATED', {
+          operationId,
+          status: AuthStatus.NOT_AUTHENTICATED,
+          reason: 'No token data found',
+          timing: { total: totalTime },
+        });
         return AuthStatus.NOT_AUTHENTICATED;
       }
 
-      if (!this.validator.validate(data.token)) {
+      // Validate token format
+      const isValidFormat = this.validator.validate(data.token);
+      if (!isValidFormat) {
+        warn('AUTH_FLOW: Authentication status - INVALID', {
+          operationId,
+          status: AuthStatus.INVALID,
+          reason: 'Token format validation failed',
+          tokenMetadata: sanitizePayloadQuick({
+            source: data.source,
+            capturedAt: data.capturedAt,
+            tokenLength: data.token.length,
+            tokenPreview: data.token.substring(0, 15) + '...',
+          }),
+          timing: { total: totalTime },
+        });
         return AuthStatus.INVALID;
       }
 
-      if (this.isExpired(data)) {
+      // Check expiry
+      const isExpired = this.isExpired(data);
+      if (isExpired) {
+        const now = Date.now();
+        const expiredBy = data.expiresAt ? now - data.expiresAt : 0;
+
+        warn('AUTH_FLOW: Authentication status - EXPIRED', {
+          operationId,
+          status: AuthStatus.EXPIRED,
+          reason: 'Token has expired',
+          tokenMetadata: sanitizePayloadQuick({
+            source: data.source,
+            capturedAt: data.capturedAt,
+            expiresAt: data.expiresAt,
+            expiredBy: {
+              milliseconds: expiredBy,
+              minutes: Math.round(expiredBy / 1000 / 60),
+              hours: Math.round(expiredBy / 1000 / 60 / 60),
+            },
+          }),
+          timing: { total: totalTime },
+        });
         return AuthStatus.EXPIRED;
       }
 
+      // Token is valid and not expired
+      const now = Date.now();
+      const timeUntilExpiry = data.expiresAt ? data.expiresAt - now : 0;
+
+      info('AUTH_FLOW: Authentication status - AUTHENTICATED', {
+        operationId,
+        status: AuthStatus.AUTHENTICATED,
+        reason: 'Valid token found',
+        tokenHealth: {
+          source: data.source,
+          age: {
+            minutes: Math.round((now - data.capturedAt) / 1000 / 60),
+            hours: Math.round((now - data.capturedAt) / 1000 / 60 / 60),
+          },
+          expiry: {
+            minutesUntilExpiry: Math.round(timeUntilExpiry / 1000 / 60),
+            isNearExpiry: timeUntilExpiry < 60 * 60 * 1000, // Less than 1 hour
+          },
+        },
+        timing: { total: totalTime },
+      });
+
       return AuthStatus.AUTHENTICATED;
     } catch (err) {
-      error('AuthManager.getAuthStatus: Error checking auth status', { error: err });
+      const errorTime = Math.round(performance.now() - operationStart);
+      error('AUTH_FLOW: Authentication status check failed', {
+        operationId,
+        status: AuthStatus.NOT_AUTHENTICATED,
+        reason: 'Error during status check',
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+      });
       return AuthStatus.NOT_AUTHENTICATED;
     }
   }

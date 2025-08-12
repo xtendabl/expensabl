@@ -5,25 +5,18 @@ import { RetryPolicy, RetryAttempt } from './retry-policy';
 import { RequestBuilder, RequestOptions } from './request-builder';
 import { ResponseNormalizer } from './response-normalizer';
 import { chromeLogger } from '../../../shared/services/logger/chrome-logger-setup';
+import { sanitizePayloadQuick } from '../../../shared/utils/payload-sanitizer';
 
 // Token provider interface
 export interface TokenProvider {
   getToken(): Promise<string | null>;
 }
 
-// Create simple logger functions
-const debug = (_message: string, _data?: unknown) => {
-  // Development-only debug logging
-};
-const info = (_message: string, _data?: unknown) => {
-  // Development-only info logging
-};
-const warn = (_message: string, _data?: unknown) => {
-  // Development-only warn logging
-};
-const error = (_message: string, _data?: unknown) => {
-  // Development-only error logging
-};
+// Create logger functions using chromeLogger
+const debug = chromeLogger.debug.bind(chromeLogger);
+const info = chromeLogger.info.bind(chromeLogger);
+const warn = chromeLogger.warn.bind(chromeLogger);
+const error = chromeLogger.error.bind(chromeLogger);
 
 export interface HttpClient {
   get<T>(path: string, options?: RequestOptions): Promise<T>;
@@ -237,7 +230,7 @@ export class ApiHttpClient implements HttpClient {
     const startTime = performance.now();
 
     const fetchOptions = this.requestBuilder.buildFetchOptions(method, options, token);
-    const correlationId = `${operationId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const correlationId = `${operationId}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
     info('[HTTP_CLIENT] Making API request', {
       correlationId,
@@ -256,9 +249,44 @@ export class ApiHttpClient implements HttpClient {
       timeout,
     });
 
+    // Log comprehensive raw request details
+    debug('HTTP_CLIENT: Raw request details', {
+      correlationId,
+      operationId,
+      request: {
+        url: url, // Full URL with query params
+        method,
+        headers: this.requestBuilder.sanitizeHeaders(
+          fetchOptions.headers as Record<string, string>
+        ),
+        body: this.logRequestBody(options.body, method),
+        timeout,
+        timestamp: Date.now(),
+        hasAbortSignal: !!fetchOptions.signal,
+      },
+    });
+
     try {
       const response = await fetch(url, fetchOptions);
       const responseTime = Math.round(performance.now() - startTime);
+
+      // Log comprehensive raw response details before processing
+      debug('HTTP_CLIENT: Raw response received', {
+        correlationId,
+        operationId,
+        response: {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers.entries ? Object.fromEntries(response.headers.entries()) : {},
+          contentType: response.headers.get('content-type'),
+          contentLength: response.headers.get('content-length'),
+          responseTime,
+          timestamp: Date.now(),
+          ok: response.ok,
+          redirected: response.redirected,
+          url: response.url,
+        },
+      });
 
       if (responseTime > 5000) {
         warn('ApiHttpClient: Slow API request detected', {
@@ -281,10 +309,34 @@ export class ApiHttpClient implements HttpClient {
       }
 
       const responseText = await response.text();
+
+      // Log raw response text before parsing
+      debug('HTTP_CLIENT: Raw response text', {
+        correlationId,
+        operationId,
+        rawResponse: {
+          text: this.responseNormalizer.truncateForLogging(responseText, 10000),
+          size: responseText.length,
+          isEmpty: !responseText || responseText.length === 0,
+          contentPreview: responseText.substring(0, 200),
+        },
+      });
+
       let data: T;
 
       try {
         data = responseText ? (JSON.parse(responseText) as T) : ({} as T);
+
+        // Log parsed response structure
+        debug('HTTP_CLIENT: Parsed response structure', {
+          correlationId,
+          operationId,
+          parsedResponse: {
+            structure: this.responseNormalizer.analyzeResponseStructure(data),
+            sampleData: this.responseNormalizer.truncateForLogging(data, 2000),
+            parseSuccess: true,
+          },
+        });
       } catch (parseError) {
         error('ApiHttpClient: Failed to parse JSON response', {
           operationId,
@@ -348,6 +400,21 @@ export class ApiHttpClient implements HttpClient {
       try {
         rawResponse = await response.text();
 
+        // Log comprehensive error response details
+        debug('HTTP_CLIENT: Error response details', {
+          correlationId,
+          operationId,
+          errorResponse: {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers.entries ? Object.fromEntries(response.headers.entries()) : {},
+            rawText: this.responseNormalizer.truncateForLogging(rawResponse, 10000),
+            textSize: rawResponse.length,
+            contentType: response.headers.get('content-type'),
+            timestamp: Date.now(),
+          },
+        });
+
         // Try to parse as JSON
         try {
           errorData = rawResponse
@@ -358,10 +425,13 @@ export class ApiHttpClient implements HttpClient {
               };
         } catch (parseError) {
           // Not JSON, log the error context
-          console.error('Non-JSON error response:', {
+          debug('HTTP_CLIENT: Non-JSON error response', {
+            correlationId,
+            operationId,
             status: response.status,
             statusText: response.statusText,
             contentType: response.headers.get('content-type'),
+            parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error',
           });
 
           errorData = {
@@ -371,6 +441,13 @@ export class ApiHttpClient implements HttpClient {
           };
         }
       } catch (textError) {
+        debug('HTTP_CLIENT: Failed to read error response text', {
+          correlationId,
+          operationId,
+          status: response.status,
+          textError: textError instanceof Error ? textError.message : 'Unknown error',
+        });
+
         errorData = {
           error: 'Failed to read error response',
           status: response.status,
@@ -393,5 +470,88 @@ export class ApiHttpClient implements HttpClient {
         errorData
       );
     }
+  }
+
+  /**
+   * Log request body with appropriate handling for different content types
+   */
+  private logRequestBody(body: unknown, method: HttpMethod): Record<string, unknown> {
+    if (!body) {
+      return { type: 'none', content: null };
+    }
+
+    if (body instanceof FormData) {
+      return this.logFormDataContents(body);
+    }
+
+    if (body instanceof ArrayBuffer || body instanceof Uint8Array) {
+      return {
+        type: 'binary',
+        size: body.byteLength || (body as Uint8Array).length,
+        contentType: body.constructor.name,
+      };
+    }
+
+    if (body instanceof File) {
+      return {
+        type: 'file',
+        name: body.name,
+        size: body.size,
+        mimeType: body.type,
+        lastModified: body.lastModified,
+      };
+    }
+
+    // For JSON bodies, sanitize and truncate
+    try {
+      const sanitized = sanitizePayloadQuick(body, {
+        maxStringLength: 2000,
+        customSensitiveFields: ['password', 'token', 'authorization'],
+      });
+
+      return {
+        type: 'json',
+        content: sanitized,
+        originalSize: JSON.stringify(body).length,
+        method,
+      };
+    } catch (error) {
+      return {
+        type: 'unknown',
+        content: '[SERIALIZATION_ERROR]',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Log FormData contents for debugging
+   */
+  private logFormDataContents(formData: FormData): Record<string, unknown> {
+    const contents: Record<string, unknown> = {};
+
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        contents[key] = {
+          type: 'File',
+          name: value.name,
+          size: value.size,
+          mimeType: value.type,
+          lastModified: value.lastModified,
+        };
+      } else {
+        // Sanitize form field values
+        const sanitized = sanitizePayloadQuick(value, {
+          maxStringLength: 500,
+        });
+        contents[key] = sanitized;
+      }
+    }
+
+    return {
+      type: 'FormData',
+      fields: contents,
+      fieldCount: Array.from(formData.keys()).length,
+    };
   }
 }
