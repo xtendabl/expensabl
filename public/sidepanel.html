@@ -304,19 +304,30 @@
       }
 
       .expenses-list {
-        max-height: 400px;
-        overflow-y: auto;
         border: 1px solid var(--border-color);
         border-radius: 4px;
+        transition: height 0.3s ease;
+        overflow-y: auto;
+        min-height: 200px;
+        max-height: 80vh;
+      }
+
+      .expenses-list.dynamic-height {
+        height: auto;
+        max-height: none;
+      }
+
+      .expenses-list.large-list {
+        max-height: 70vh;
+        overflow-y: auto;
       }
 
       .expense-item {
-        padding: 12px;
+        padding: 20px;
         border-bottom: 1px solid var(--border-light);
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
         background-color: var(--bg-card);
+        transition: all 0.2s ease;
+        cursor: pointer;
       }
 
       .expense-item:last-child {
@@ -325,62 +336,98 @@
 
       .expense-item:hover {
         background-color: var(--bg-hover);
-        cursor: pointer;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
 
-      .expense-arrow {
-        color: var(--text-muted);
-        font-size: 18px;
-        font-weight: bold;
-        margin-left: 10px;
-        align-self: center;
+      .expense-item:focus {
+        outline: 2px solid var(--btn-primary-bg);
+        outline-offset: 2px;
       }
 
-      .expense-main {
+      .expense-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        width: 100%;
+      }
+
+      .expense-left {
         flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .expense-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-left: 16px;
+        min-height: 60px;
       }
 
       .expense-merchant {
-        font-weight: 500;
+        font-weight: 700;
+        font-size: 18px;
         color: var(--text-primary);
-        margin-bottom: 4px;
+        line-height: 1.3;
+        margin: 0;
       }
 
-      .expense-details {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-bottom: 2px;
+      .expense-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .expense-date {
+        font-size: 15px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .expense-category {
+        font-size: 15px;
+        color: var(--text-secondary);
+        font-weight: 400;
       }
 
       .expense-id {
-        font-size: 11px;
+        font-size: 13px;
         color: var(--text-muted);
-        margin-top: 4px;
         font-family: monospace;
+        font-weight: 400;
       }
 
-      .expense-amount {
-        font-weight: 600;
-        color: var(--text-primary);
-        text-align: right;
+      .expense-status-container {
+        margin-top: 4px;
       }
 
       .expense-status {
-        font-size: 11px;
-        padding: 2px 6px;
-        border-radius: 3px;
-        margin-top: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 4px;
         display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .expense-status.approved {
-        background-color: var(--status-approved);
-        color: var(--status-approved-text);
+        background-color: #d4edda;
+        color: #155724;
+      }
+
+      .expense-status.submitted {
+        background-color: #fff3cd;
+        color: #856404;
       }
 
       .expense-status.pending {
-        background-color: var(--status-pending);
-        color: var(--status-pending-text);
+        background-color: #fff3cd;
+        color: #856404;
       }
 
       .expense-status.rejected {
@@ -391,6 +438,47 @@
       .expense-status.unknown {
         background-color: var(--status-unknown);
         color: var(--status-unknown-text);
+      }
+
+      .expense-amount {
+        font-weight: 700;
+        font-size: 18px;
+        color: var(--text-primary);
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .expense-expand-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+
+      .expense-item:hover .expense-expand-indicator {
+        transform: translateX(2px);
+      }
+
+      .open-indicator {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background-color: rgba(33, 150, 243, 0.1);
+        color: #2196F3;
+        border: 1px solid rgba(33, 150, 243, 0.3);
+        transition: all 0.2s ease;
+      }
+
+      .expense-item:hover .open-indicator {
+        background-color: #2196F3;
+        color: white;
+        border-color: #2196F3;
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
       }
 
       .loading-spinner {
@@ -711,11 +799,11 @@
         }
 
         .expense-item {
-          padding: 10px;
+          padding: 14px;
         }
 
         .expense-merchant {
-          font-size: 14px;
+          font-size: 16px;
         }
 
         .expense-details {
@@ -723,7 +811,17 @@
         }
 
         .expense-amount {
-          font-size: 14px;
+          font-size: 16px;
+        }
+
+        .expense-status {
+          font-size: 12px;
+          padding: 3px 6px;
+        }
+
+        .open-indicator {
+          font-size: 10px;
+          padding: 2px 5px;
         }
 
         .btn {
@@ -754,9 +852,6 @@
       }
 
       /* Ensure good text readability */
-      .expense-item {
-        transition: background-color 0.2s ease;
-      }
 
       /* Better scrollbar styling for webkit browsers */
       .expenses-list::-webkit-scrollbar {
@@ -1294,6 +1389,40 @@
       }
 
 
+
+      /* Responsive Design for Expense Cards */
+      @media (max-width: 768px) {
+        .expense-item {
+          padding: 16px;
+        }
+
+        .expense-content {
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .expense-right {
+          margin-left: 0;
+          align-self: flex-end;
+          flex-direction: row;
+          align-items: center;
+          gap: 12px;
+          min-height: auto;
+        }
+
+        .expense-merchant {
+          font-size: 15px;
+        }
+
+        .expense-amount {
+          font-size: 15px;
+        }
+
+        .open-indicator {
+          font-size: 10px;
+          padding: 2px 5px;
+        }
+      }
 
       /* Responsive adjustments */
       @media (max-width: 400px) {

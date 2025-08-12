@@ -124,6 +124,8 @@ export class ExpenseList extends BaseComponent<ExpenseListProps, ExpenseListStat
   protected onUpdate(): void {
     // Remount expense cards on update
     this.mountExpenseCards();
+    // Update list height based on expense count
+    this.updateListHeight();
   }
 
   protected onUnmount(): void {
@@ -216,6 +218,37 @@ export class ExpenseList extends BaseComponent<ExpenseListProps, ExpenseListStat
     `);
 
     return `<div class="pagination">${pages.join('')}</div>`;
+  }
+
+  private updateListHeight(): void {
+    const state = expenseStore.getState();
+    const expenseCount = state.items.length;
+
+    // Find the expenses list container in the DOM
+    const expensesList = document.getElementById('expensesList');
+    if (!expensesList) return;
+
+    // Calculate dynamic height based on expense count
+    const cardHeight = 100; // Approximate height per card in pixels (increased due to larger fonts)
+    const padding = 40; // Container padding
+    const headerHeight = 40; // List header height
+    const calculatedHeight = expenseCount * cardHeight + padding + headerHeight;
+
+    // Set reasonable bounds
+    const minHeight = 200;
+    const maxHeight = window.innerHeight * 0.7; // 70% of viewport
+
+    if (expenseCount <= 8) {
+      // For small lists, use dynamic height
+      expensesList.classList.add('dynamic-height');
+      expensesList.classList.remove('large-list');
+      expensesList.style.height = `${Math.max(calculatedHeight, minHeight)}px`;
+    } else {
+      // For large lists, use scrollable container
+      expensesList.classList.remove('dynamic-height');
+      expensesList.classList.add('large-list');
+      expensesList.style.height = `${maxHeight}px`;
+    }
   }
 
   private escapeHtml(text: string): string {
