@@ -81,6 +81,11 @@ export class SidepanelUI {
 
   private initializeCount = 0;
 
+  // Authentication cooldown tracking
+  private lastAuthCheckTime = 0;
+  private lastAuthCheckSuccess = false;
+  private readonly AUTH_COOLDOWN_MS = 30 * 1000; // 30 seconds
+
   private injectStyles(): void {
     // Add expense detail styles if not already present
     if (!document.getElementById('expense-detail-styles')) {
@@ -167,6 +172,7 @@ export class SidepanelUI {
     this.attachEventListeners();
     this.initializeCollapsibleSections();
     void this.initializeDarkMode();
+    void this.loadInitialData();
   }
 
   private attachEventListeners(): void {
@@ -447,34 +453,46 @@ export class SidepanelUI {
       initialStatus.style.display = 'none';
     }
 
-    // First check authentication status
-    info('SidepanelUI: Checking authentication status');
-    try {
-      const authResponse = await this.sendMessage({ action: 'checkAuth' });
-      info('SidepanelUI: Auth response:', authResponse);
+    // Check authentication status with cooldown
+    const shouldCheckAuth = this.shouldPerformAuthCheck();
+    if (shouldCheckAuth) {
+      info('SidepanelUI: Checking authentication status');
+      try {
+        const authResponse = await this.sendMessage({ action: 'checkAuth' });
+        info('SidepanelUI: Auth response:', authResponse);
 
-      if (!authResponse.success || !authResponse.hasToken || !authResponse.isValid) {
-        status.textContent = 'Authentication required';
-        status.className = 'expenses-status error';
-        if (fetchBtn) fetchBtn.disabled = false;
-        if (refreshBtn) refreshBtn.disabled = false;
+        const isAuthValid = Boolean(
+          authResponse.success && authResponse.hasToken && authResponse.isValid
+        );
+        this.updateAuthCooldown(isAuthValid);
 
-        // Show authentication modal
-        showAuthenticationModal({
-          sendMessage: this.sendMessage,
-          onAuthenticated: async () => {
-            // Retry fetching expenses after successful authentication
-            await this.handleFetchExpenses(filters);
-          },
-          onCancel: () => {
-            info('SidepanelUI: Authentication cancelled by user');
-          },
-        });
+        if (!isAuthValid) {
+          status.textContent = 'Authentication required';
+          status.className = 'expenses-status error';
+          if (fetchBtn) fetchBtn.disabled = false;
+          if (refreshBtn) refreshBtn.disabled = false;
 
-        return;
+          // Show authentication modal
+          showAuthenticationModal({
+            sendMessage: this.sendMessage,
+            onAuthenticated: async () => {
+              // Reset cooldown and retry fetching expenses after successful authentication
+              this.updateAuthCooldown(true);
+              await this.handleFetchExpenses(filters);
+            },
+            onCancel: () => {
+              info('SidepanelUI: Authentication cancelled by user');
+            },
+          });
+
+          return;
+        }
+      } catch (err) {
+        error('SidepanelUI: Auth check failed:', { error: err });
+        this.updateAuthCooldown(false);
       }
-    } catch (err) {
-      error('SidepanelUI: Auth check failed:', { error: err });
+    } else {
+      info('SidepanelUI: Skipping auth check due to cooldown');
     }
 
     // Update UI state
@@ -2546,6 +2564,36 @@ export class SidepanelUI {
       }
     } catch (err) {
       error('Failed to initialize dark mode:', { error: err });
+    }
+  }
+
+  /**
+   * Check if an authentication check should be performed based on cooldown period
+   */
+  private shouldPerformAuthCheck(): boolean {
+    const now = Date.now();
+    const timeSinceLastCheck = now - this.lastAuthCheckTime;
+
+    // Always check if we haven't checked before or if last check failed
+    if (this.lastAuthCheckTime === 0 || !this.lastAuthCheckSuccess) {
+      return true;
+    }
+
+    // Check if cooldown period has passed
+    return timeSinceLastCheck >= this.AUTH_COOLDOWN_MS;
+  }
+
+  /**
+   * Update authentication cooldown tracking
+   */
+  private updateAuthCooldown(success: boolean): void {
+    this.lastAuthCheckTime = Date.now();
+    this.lastAuthCheckSuccess = success;
+
+    if (success) {
+      info('SidepanelUI: Auth check successful, cooldown activated for 30 seconds');
+    } else {
+      info('SidepanelUI: Auth check failed, cooldown reset');
     }
   }
 
