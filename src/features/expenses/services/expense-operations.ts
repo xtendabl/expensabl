@@ -8,17 +8,13 @@ import {
 import { HttpClient } from '../http/http-client';
 import { ResponseNormalizer } from '../http/response-normalizer';
 import { ValidationError } from '../errors';
+import { chromeLogger } from '../../../shared/services/logger/chrome-logger-setup';
+import { sanitizePayloadQuick } from '../../../shared/utils/payload-sanitizer';
 
-// Create simple logger functions
-const debug = (_message: string, _data?: unknown) => {
-  // Development-only debug logging
-};
-const info = (_message: string, _data?: unknown) => {
-  // Development-only info logging
-};
-const error = (_message: string, _data?: unknown) => {
-  // Development-only error logging
-};
+// Create logger functions using chromeLogger
+const debug = chromeLogger.debug.bind(chromeLogger);
+const info = chromeLogger.info.bind(chromeLogger);
+const error = chromeLogger.error.bind(chromeLogger);
 
 export interface ReceiptUploadResult {
   receiptKey: string;
@@ -73,51 +69,135 @@ export class ExpenseService implements ExpenseOperations {
   }
 
   async fetchExpense(expenseId: string): Promise<NavanExpenseData> {
-    debug('ExpenseService.fetchExpense: Fetching expense', { expenseId });
-    ExpenseValidator.validateExpenseId(expenseId);
+    const operationStart = performance.now();
+    const operationId = `fetch_exp_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-    const expense = await this.httpClient.get<NavanExpenseData>(`/expenses/${expenseId}`);
-
-    // Log all receipt-related fields to understand the API response structure
-    const receiptFields: Record<string, any> = {};
-    for (const key in expense) {
-      if (key.toLowerCase().includes('receipt')) {
-        receiptFields[key] = (expense as any)[key];
-      }
-    }
-
-    info('ExpenseService.fetchExpense: Expense fetched successfully', {
-      expenseId,
-      status: expense.status,
-      amount: expense.merchantAmount,
-      receiptFields,
-      // Also check for any array fields that might contain receipts
-      hasReceiptsArray: !!(expense as any).receipts,
-      receiptsLength: (expense as any).receipts?.length,
+    // Log operation initiation
+    info('EXPENSE_OPERATION: fetchExpense initiated', {
+      operation: 'fetchExpense',
+      operationId,
+      requestPayload: sanitizePayloadQuick({ expenseId }),
+      timestamp: Date.now(),
     });
 
-    return expense;
+    debug('ExpenseService.fetchExpense: Fetching expense', { expenseId, operationId });
+    ExpenseValidator.validateExpenseId(expenseId);
+
+    try {
+      const expense = await this.httpClient.get<NavanExpenseData>(`/expenses/${expenseId}`);
+
+      // Log all receipt-related fields to understand the API response structure
+      const receiptFields: Record<string, any> = {};
+      for (const key in expense) {
+        if (key.toLowerCase().includes('receipt')) {
+          receiptFields[key] = (expense as any)[key];
+        }
+      }
+
+      const operationTime = Math.round(performance.now() - operationStart);
+
+      // Log operation completion with response analysis
+      info('EXPENSE_OPERATION: fetchExpense completed', {
+        operation: 'fetchExpense',
+        operationId,
+        success: true,
+        responseStructure: this.responseNormalizer.analyzeResponseStructure(expense),
+        sampleResponse: sanitizePayloadQuick(expense, { maxStringLength: 1000 }),
+        timing: { total: operationTime },
+        metadata: {
+          expenseId,
+          status: expense.status,
+          amount: expense.merchantAmount,
+          receiptFields,
+          hasReceiptsArray: !!(expense as any).receipts,
+          receiptsLength: (expense as any).receipts?.length,
+        },
+      });
+
+      return expense;
+    } catch (err) {
+      const errorTime = Math.round(performance.now() - operationStart);
+
+      // Log operation failure with context
+      error('EXPENSE_OPERATION: fetchExpense failed', {
+        operation: 'fetchExpense',
+        operationId,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+        requestContext: { expenseId },
+      });
+
+      throw err;
+    }
   }
 
   async fetchExpenses(filters?: ExpenseFilters): Promise<ExpenseListResponse> {
-    debug('ExpenseService.fetchExpenses: Fetching expenses', { filters });
+    const operationStart = performance.now();
+    const operationId = `fetch_exps_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    // Log operation initiation
+    info('EXPENSE_OPERATION: fetchExpenses initiated', {
+      operation: 'fetchExpenses',
+      operationId,
+      requestPayload: sanitizePayloadQuick({ filters }),
+      hasFilters: !!filters,
+      timestamp: Date.now(),
+    });
+
+    debug('ExpenseService.fetchExpenses: Fetching expenses', { filters, operationId });
 
     if (filters) {
       ExpenseValidator.validateExpenseFilters(filters);
     }
 
-    const response = await this.httpClient.getWithParams<unknown>('/search/transactions', filters);
-    const normalizedResponse = this.responseNormalizer.normalizeExpenseListResponse(response);
+    try {
+      const response = await this.httpClient.getWithParams<unknown>(
+        '/search/transactions',
+        filters
+      );
+      const normalizedResponse = this.responseNormalizer.normalizeExpenseListResponse(response);
 
-    const responseFormat = this.determineResponseFormat(response);
+      const responseFormat = this.determineResponseFormat(response);
+      const operationTime = Math.round(performance.now() - operationStart);
 
-    info('ExpenseService.fetchExpenses: Expenses fetched', {
-      count: normalizedResponse.data.length,
-      hasFilters: !!filters,
-      format: responseFormat,
-    });
+      // Log operation completion with response analysis
+      info('EXPENSE_OPERATION: fetchExpenses completed', {
+        operation: 'fetchExpenses',
+        operationId,
+        success: true,
+        responseStructure: this.responseNormalizer.analyzeResponseStructure(normalizedResponse),
+        sampleResponse: sanitizePayloadQuick(normalizedResponse, { maxStringLength: 2000 }),
+        timing: { total: operationTime },
+        metadata: {
+          count: normalizedResponse.data.length,
+          hasFilters: !!filters,
+          format: responseFormat,
+          firstItemStructure:
+            normalizedResponse.data.length > 0
+              ? this.responseNormalizer.analyzeResponseStructure(normalizedResponse.data[0])
+              : null,
+        },
+      });
 
-    return normalizedResponse;
+      return normalizedResponse;
+    } catch (err) {
+      const errorTime = Math.round(performance.now() - operationStart);
+
+      // Log operation failure with context
+      error('EXPENSE_OPERATION: fetchExpenses failed', {
+        operation: 'fetchExpenses',
+        operationId,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+        requestContext: { filters, hasFilters: !!filters },
+      });
+
+      throw err;
+    }
   }
 
   // Documenting due to complex three-step process with timing metrics
@@ -140,7 +220,7 @@ export class ExpenseService implements ExpenseOperations {
    */
   async createExpense(expenseData: ExpenseCreatePayload): Promise<NavanExpenseData> {
     const operationStart = performance.now();
-    const operationId = `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const operationId = `exp_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
     info('[EXPENSE_SERVICE] createExpense called', {
       operationId,
@@ -165,6 +245,18 @@ export class ExpenseService implements ExpenseOperations {
 
     try {
       // Step 1: Create expense in draft state
+      const step1CorrelationId = `${operationId}_step1_${Date.now()}`;
+
+      info('CREATE_EXPENSE: Step 1 - Draft creation initiated', {
+        operationId,
+        step: 'draft_creation',
+        stepCorrelationId: step1CorrelationId,
+        requestPayload: sanitizePayloadQuick(expenseData, { maxStringLength: 1500 }),
+        endpoint: '/expenses/manual',
+        method: 'POST',
+        timestamp: Date.now(),
+      });
+
       debug('ExpenseService.createExpense: Creating draft expense');
       const step1Start = performance.now();
 
@@ -175,23 +267,91 @@ export class ExpenseService implements ExpenseOperations {
 
       stepTimings.draft_creation = Math.round(performance.now() - step1Start);
 
+      // Log Step 1 completion with detailed response analysis
+      info('CREATE_EXPENSE: Step 1 - Draft creation completed', {
+        operationId,
+        step: 'draft_creation',
+        stepCorrelationId: step1CorrelationId,
+        success: true,
+        timing: { stepTime: stepTimings.draft_creation },
+        rawResponse: sanitizePayloadQuick(draftExpense, { maxStringLength: 2000 }),
+        responseStructure: this.responseNormalizer.analyzeResponseStructure(draftExpense),
+        extractedData: {
+          expenseId: draftExpense.uuid || draftExpense.id,
+          status: draftExpense.status,
+          amount: draftExpense.merchantAmount,
+          hasUuid: !!draftExpense.uuid,
+          hasId: !!draftExpense.id,
+        },
+      });
+
       // Step 2: Extract expense ID and finalize expense
       expenseId = draftExpense.uuid || draftExpense.id;
       if (!expenseId) {
+        error('CREATE_EXPENSE: Step 1 - No expense ID in response', {
+          operationId,
+          step: 'draft_creation',
+          stepCorrelationId: step1CorrelationId,
+          draftResponse: sanitizePayloadQuick(draftExpense),
+          availableFields: Object.keys(draftExpense),
+        });
         throw new ValidationError('No expense ID returned from draft creation');
       }
+
+      const step2CorrelationId = `${operationId}_step2_${Date.now()}`;
+
+      info('CREATE_EXPENSE: Step 2 - Finalization initiated', {
+        operationId,
+        step: 'finalization',
+        stepCorrelationId: step2CorrelationId,
+        expenseId,
+        requestPayload: sanitizePayloadQuick(expenseData, { maxStringLength: 1500 }),
+        endpoint: `/expenses/${expenseId}`,
+        method: 'PATCH',
+        timestamp: Date.now(),
+      });
 
       debug('ExpenseService.createExpense: Finalizing expense', { expenseId });
       const step2Start = performance.now();
 
-      await this.httpClient.patch<NavanExpenseData>(`/expenses/${expenseId}`, expenseData);
+      const finalizeResponse = await this.httpClient.patch<NavanExpenseData>(
+        `/expenses/${expenseId}`,
+        expenseData
+      );
 
       stepTimings.finalization = Math.round(performance.now() - step2Start);
+
+      // Log Step 2 completion
+      info('CREATE_EXPENSE: Step 2 - Finalization completed', {
+        operationId,
+        step: 'finalization',
+        stepCorrelationId: step2CorrelationId,
+        expenseId,
+        success: true,
+        timing: { stepTime: stepTimings.finalization },
+        rawResponse: sanitizePayloadQuick(finalizeResponse, { maxStringLength: 2000 }),
+        responseStructure: this.responseNormalizer.analyzeResponseStructure(finalizeResponse),
+        statusAfterFinalization: finalizeResponse.status,
+      });
 
       let finalExpense: NavanExpenseData;
 
       // Step 3: Submit expense to move it out of draft state (only if not isDraft)
       if (!expenseData.isDraft) {
+        const step3CorrelationId = `${operationId}_step3_${Date.now()}`;
+
+        info('CREATE_EXPENSE: Step 3 - Submission initiated', {
+          operationId,
+          step: 'submission',
+          stepCorrelationId: step3CorrelationId,
+          expenseId,
+          requestPayload: {},
+          endpoint: `/expenses/${expenseId}/submit`,
+          method: 'POST',
+          workflowPath: 'draft -> submitted',
+          timestamp: Date.now(),
+        });
+
         debug('ExpenseService.createExpense: Submitting expense', { expenseId });
         const step3Start = performance.now();
 
@@ -201,11 +361,54 @@ export class ExpenseService implements ExpenseOperations {
         );
 
         stepTimings.submission = Math.round(performance.now() - step3Start);
+
+        // Log Step 3 completion
+        info('CREATE_EXPENSE: Step 3 - Submission completed', {
+          operationId,
+          step: 'submission',
+          stepCorrelationId: step3CorrelationId,
+          expenseId,
+          success: true,
+          timing: { stepTime: stepTimings.submission },
+          rawResponse: sanitizePayloadQuick(finalExpense, { maxStringLength: 2000 }),
+          responseStructure: this.responseNormalizer.analyzeResponseStructure(finalExpense),
+          statusTransition: `${finalizeResponse.status} -> ${finalExpense.status}`,
+          workflowPath: 'draft -> submitted',
+        });
       } else {
         // If isDraft is true, fetch the current state of the expense
+        const step3CorrelationId = `${operationId}_step3_draft_${Date.now()}`;
+
+        info('CREATE_EXPENSE: Step 3 - Draft state preservation', {
+          operationId,
+          step: 'draft_preservation',
+          stepCorrelationId: step3CorrelationId,
+          expenseId,
+          endpoint: `/expenses/${expenseId}`,
+          method: 'GET',
+          workflowPath: 'draft -> draft (preserved)',
+          timestamp: Date.now(),
+        });
+
         debug('ExpenseService.createExpense: Keeping expense in draft state', { expenseId });
+        const step3Start = performance.now();
+
         finalExpense = await this.httpClient.get<NavanExpenseData>(`/expenses/${expenseId}`);
-        stepTimings.submission = 0; // No submission step for drafts
+        stepTimings.submission = Math.round(performance.now() - step3Start);
+
+        // Log Step 3 completion for draft preservation
+        info('CREATE_EXPENSE: Step 3 - Draft state preserved', {
+          operationId,
+          step: 'draft_preservation',
+          stepCorrelationId: step3CorrelationId,
+          expenseId,
+          success: true,
+          timing: { stepTime: stepTimings.submission },
+          rawResponse: sanitizePayloadQuick(finalExpense, { maxStringLength: 2000 }),
+          responseStructure: this.responseNormalizer.analyzeResponseStructure(finalExpense),
+          finalStatus: finalExpense.status,
+          workflowPath: 'draft -> draft (preserved)',
+        });
       }
 
       const totalTime = Math.round(performance.now() - operationStart);
@@ -236,10 +439,78 @@ export class ExpenseService implements ExpenseOperations {
     } catch (err) {
       const errorTime = Math.round(performance.now() - operationStart);
 
+      // Determine which step failed based on completed timings and expense ID
+      let failedStep = 'draft_creation';
+      let stepContext: Record<string, unknown> = {};
+
+      if (stepTimings.draft_creation && !expenseId) {
+        failedStep = 'id_extraction';
+        stepContext = {
+          draftCreationCompleted: true,
+          draftCreationTime: stepTimings.draft_creation,
+          idExtractionFailed: true,
+        };
+      } else if (stepTimings.draft_creation && expenseId && !stepTimings.finalization) {
+        failedStep = 'finalization';
+        stepContext = {
+          draftCreationCompleted: true,
+          expenseId,
+          finalizationFailed: true,
+        };
+      } else if (stepTimings.finalization && !stepTimings.submission && !expenseData.isDraft) {
+        failedStep = 'submission';
+        stepContext = {
+          draftCreationCompleted: true,
+          finalizationCompleted: true,
+          expenseId,
+          submissionFailed: true,
+          workflowPath: 'draft -> submitted (failed)',
+        };
+      } else if (stepTimings.finalization && !stepTimings.submission && expenseData.isDraft) {
+        failedStep = 'draft_preservation';
+        stepContext = {
+          draftCreationCompleted: true,
+          finalizationCompleted: true,
+          expenseId,
+          draftPreservationFailed: true,
+          workflowPath: 'draft -> draft (failed)',
+        };
+      }
+
+      // Log comprehensive step failure information
+      error('CREATE_EXPENSE: Multi-step process failed', {
+        operationId,
+        failedStep,
+        stepContext,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: {
+          total: errorTime,
+          completed_steps: stepTimings,
+          step_completion: {
+            draft_creation: !!stepTimings.draft_creation,
+            finalization: !!stepTimings.finalization,
+            submission: !!stepTimings.submission,
+          },
+        },
+        requestContext: {
+          originalPayload: sanitizePayloadQuick(expenseData),
+          isDraft: expenseData.isDraft,
+          workflowPath: expenseData.isDraft ? 'draft -> draft' : 'draft -> submitted',
+          expenseId: expenseId || null,
+        },
+        debugInfo: {
+          hasExpenseId: !!expenseId,
+          completedSteps: Object.keys(stepTimings),
+          stepCount: Object.keys(stepTimings).length,
+        },
+      });
+
+      // Also log the original error for backward compatibility
       error('ExpenseService.createExpense: Failed to create expense', {
         error: err,
         expenseId,
-        step: expenseId ? 'finalization' : 'draft creation',
+        step: failedStep,
         operationId: 'create-expense',
         timing: {
           total: errorTime,
@@ -255,25 +526,76 @@ export class ExpenseService implements ExpenseOperations {
     expenseId: string,
     updateData: Partial<ExpenseCreatePayload>
   ): Promise<NavanExpenseData> {
+    const operationStart = performance.now();
+    const operationId = `update_exp_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    // Log operation initiation
+    info('EXPENSE_OPERATION: updateExpense initiated', {
+      operation: 'updateExpense',
+      operationId,
+      requestPayload: sanitizePayloadQuick({ expenseId, updateData }),
+      metadata: {
+        expenseId,
+        fields: Object.keys(updateData),
+        fieldCount: Object.keys(updateData).length,
+      },
+      timestamp: Date.now(),
+    });
+
     debug('ExpenseService.updateExpense: Updating expense', {
       expenseId,
       fields: Object.keys(updateData),
+      operationId,
     });
 
     ExpenseValidator.validateExpenseId(expenseId);
     ExpenseValidator.validateExpenseUpdateData(updateData);
 
-    const updatedExpense = await this.httpClient.patch<NavanExpenseData>(
-      `/expenses/${expenseId}`,
-      updateData
-    );
+    try {
+      const updatedExpense = await this.httpClient.patch<NavanExpenseData>(
+        `/expenses/${expenseId}`,
+        updateData
+      );
 
-    info('ExpenseService.updateExpense: Expense updated successfully', {
-      expenseId,
-      status: updatedExpense.status,
-    });
+      const operationTime = Math.round(performance.now() - operationStart);
 
-    return updatedExpense;
+      // Log operation completion with response analysis
+      info('EXPENSE_OPERATION: updateExpense completed', {
+        operation: 'updateExpense',
+        operationId,
+        success: true,
+        responseStructure: this.responseNormalizer.analyzeResponseStructure(updatedExpense),
+        sampleResponse: sanitizePayloadQuick(updatedExpense, { maxStringLength: 1000 }),
+        timing: { total: operationTime },
+        metadata: {
+          expenseId,
+          status: updatedExpense.status,
+          fieldsUpdated: Object.keys(updateData),
+          fieldCount: Object.keys(updateData).length,
+        },
+      });
+
+      return updatedExpense;
+    } catch (err) {
+      const errorTime = Math.round(performance.now() - operationStart);
+
+      // Log operation failure with context
+      error('EXPENSE_OPERATION: updateExpense failed', {
+        operation: 'updateExpense',
+        operationId,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+        requestContext: {
+          expenseId,
+          updateData: sanitizePayloadQuick(updateData),
+          fields: Object.keys(updateData),
+        },
+      });
+
+      throw err;
+    }
   }
 
   /**
@@ -285,21 +607,64 @@ export class ExpenseService implements ExpenseOperations {
    * @throws {ApiError} If submission fails
    */
   async submitDraftExpense(expenseId: string): Promise<NavanExpenseData> {
-    debug('ExpenseService.submitDraftExpense: Submitting draft expense', { expenseId });
+    const operationStart = performance.now();
+    const operationId = `submit_draft_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    // Log operation initiation
+    info('EXPENSE_OPERATION: submitDraftExpense initiated', {
+      operation: 'submitDraftExpense',
+      operationId,
+      requestPayload: sanitizePayloadQuick({ expenseId }),
+      timestamp: Date.now(),
+    });
+
+    debug('ExpenseService.submitDraftExpense: Submitting draft expense', {
+      expenseId,
+      operationId,
+    });
 
     ExpenseValidator.validateExpenseId(expenseId);
 
-    const submittedExpense = await this.httpClient.post<NavanExpenseData>(
-      `/expenses/${expenseId}/submit`,
-      {}
-    );
+    try {
+      const submittedExpense = await this.httpClient.post<NavanExpenseData>(
+        `/expenses/${expenseId}/submit`,
+        {}
+      );
 
-    info('ExpenseService.submitDraftExpense: Draft expense submitted successfully', {
-      expenseId,
-      status: submittedExpense.status,
-    });
+      const operationTime = Math.round(performance.now() - operationStart);
 
-    return submittedExpense;
+      // Log operation completion with response analysis
+      info('EXPENSE_OPERATION: submitDraftExpense completed', {
+        operation: 'submitDraftExpense',
+        operationId,
+        success: true,
+        responseStructure: this.responseNormalizer.analyzeResponseStructure(submittedExpense),
+        sampleResponse: sanitizePayloadQuick(submittedExpense, { maxStringLength: 1000 }),
+        timing: { total: operationTime },
+        metadata: {
+          expenseId,
+          status: submittedExpense.status,
+          statusTransition: 'draft -> submitted',
+        },
+      });
+
+      return submittedExpense;
+    } catch (err) {
+      const errorTime = Math.round(performance.now() - operationStart);
+
+      // Log operation failure with context
+      error('EXPENSE_OPERATION: submitDraftExpense failed', {
+        operation: 'submitDraftExpense',
+        operationId,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+        requestContext: { expenseId },
+      });
+
+      throw err;
+    }
   }
 
   // Documenting due to complex response format detection logic
@@ -353,9 +718,77 @@ export class ExpenseService implements ExpenseOperations {
    * Upload a receipt for an expense
    */
   async uploadReceipt(expenseId: string, formData: FormData): Promise<ReceiptUploadResult> {
-    const response = await this.httpClient.post<any>(`/expenses/${expenseId}/receipt`, formData);
+    const operationStart = performance.now();
+    const operationId = `upload_receipt_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-    return this.extractReceiptData(response);
+    // Log operation initiation with FormData analysis
+    const formDataInfo: Record<string, unknown> = {};
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        formDataInfo[key] = {
+          type: 'File',
+          name: value.name,
+          size: value.size,
+          mimeType: value.type,
+        };
+      } else {
+        formDataInfo[key] = sanitizePayloadQuick(value);
+      }
+    }
+
+    info('EXPENSE_OPERATION: uploadReceipt initiated', {
+      operation: 'uploadReceipt',
+      operationId,
+      requestPayload: sanitizePayloadQuick({ expenseId, formDataFields: formDataInfo }),
+      metadata: {
+        expenseId,
+        fieldCount: Array.from(formData.keys()).length,
+        hasFile: Array.from(formData.values()).some((v) => v instanceof File),
+      },
+      timestamp: Date.now(),
+    });
+
+    try {
+      const response = await this.httpClient.post<any>(`/expenses/${expenseId}/receipt`, formData);
+      const result = this.extractReceiptData(response);
+
+      const operationTime = Math.round(performance.now() - operationStart);
+
+      // Log operation completion
+      info('EXPENSE_OPERATION: uploadReceipt completed', {
+        operation: 'uploadReceipt',
+        operationId,
+        success: true,
+        responseStructure: this.responseNormalizer.analyzeResponseStructure(response),
+        sampleResponse: sanitizePayloadQuick(response, { maxStringLength: 1000 }),
+        timing: { total: operationTime },
+        metadata: {
+          expenseId,
+          receiptKey: result.receiptKey,
+          uploadSuccess: true,
+        },
+      });
+
+      return result;
+    } catch (err) {
+      const errorTime = Math.round(performance.now() - operationStart);
+
+      // Log operation failure with context
+      error('EXPENSE_OPERATION: uploadReceipt failed', {
+        operation: 'uploadReceipt',
+        operationId,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+        requestContext: {
+          expenseId,
+          formDataFields: formDataInfo,
+        },
+      });
+
+      throw err;
+    }
   }
 
   /**
@@ -378,6 +811,17 @@ export class ExpenseService implements ExpenseOperations {
    * Fetches the presigned S3 URL from the Navan API
    */
   async getReceiptUrl(receiptKey: string): Promise<string> {
+    const operationStart = performance.now();
+    const operationId = `get_receipt_url_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    // Log operation initiation
+    info('EXPENSE_OPERATION: getReceiptUrl initiated', {
+      operation: 'getReceiptUrl',
+      operationId,
+      requestPayload: sanitizePayloadQuick({ receiptKey }),
+      timestamp: Date.now(),
+    });
+
     // The HTTP client adds /user prefix, so we only need /download path
     // This will result in the correct URL: /api/liquid/user/download
     const encodedKey = encodeURIComponent(receiptKey);
@@ -391,26 +835,52 @@ export class ExpenseService implements ExpenseOperations {
       const response = await this.httpClient.getWithParams<{ url: string }>(path, params);
 
       if (!response || !response.url) {
-        console.error('[RECEIPT_SERVICE] Invalid response - missing URL:', response);
         throw new Error('No URL in response');
       }
 
-      info('Receipt presigned URL fetched:', { receiptKey, url: response.url });
+      const operationTime = Math.round(performance.now() - operationStart);
+
+      // Log operation completion
+      info('EXPENSE_OPERATION: getReceiptUrl completed', {
+        operation: 'getReceiptUrl',
+        operationId,
+        success: true,
+        responseStructure: this.responseNormalizer.analyzeResponseStructure(response),
+        sampleResponse: sanitizePayloadQuick(response, { maxStringLength: 500 }),
+        timing: { total: operationTime },
+        metadata: {
+          receiptKey,
+          hasUrl: !!response.url,
+          urlLength: response.url?.length || 0,
+        },
+      });
 
       // Return the presigned S3 URL
       return response.url;
     } catch (err) {
-      console.error('[RECEIPT_SERVICE] Failed to get presigned URL:', {
-        receiptKey,
-        error: err,
-        errorMessage: err instanceof Error ? err.message : 'Unknown error',
-        errorStack: err instanceof Error ? err.stack : undefined,
-      });
+      const errorTime = Math.round(performance.now() - operationStart);
 
-      error('Failed to get presigned URL:', { receiptKey, error: err });
+      // Log operation failure with context
+      error('EXPENSE_OPERATION: getReceiptUrl failed', {
+        operation: 'getReceiptUrl',
+        operationId,
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorType: err instanceof Error ? err.constructor.name : 'UnknownError',
+        timing: { total: errorTime },
+        requestContext: { receiptKey, encodedKey },
+      });
 
       // Fallback to the direct download URL
       const fallbackUrl = `https://app.navan.com/api/liquid/user/download?fileKey=${encodedKey}&inline=true`;
+
+      info('EXPENSE_OPERATION: getReceiptUrl using fallback URL', {
+        operation: 'getReceiptUrl',
+        operationId,
+        fallbackUrl,
+        receiptKey,
+      });
+
       return fallbackUrl;
     }
   }
@@ -419,6 +889,8 @@ export class ExpenseService implements ExpenseOperations {
    * Delete a receipt from an expense
    */
   async deleteReceipt(expenseId: string, receiptKey: string): Promise<void> {
+    debug('ExpenseService.deleteReceipt: Deleting receipt', { expenseId, receiptKey });
     await this.httpClient.delete(`/expenses/${expenseId}/receipt`);
+    info('ExpenseService.deleteReceipt: Receipt deleted successfully', { expenseId, receiptKey });
   }
 }

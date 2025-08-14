@@ -15,6 +15,7 @@ import {
 } from '../features/expenses/types';
 import { ScheduleCalculator } from '../features/templates/scheduler';
 import { ExpenseTemplate, TemplateScheduling } from '../features/templates/types';
+import { formatCategoryDisplay } from '../shared/utils';
 
 // Type for expense data with receipt fields
 interface ExpenseWithReceipts {
@@ -666,7 +667,7 @@ export class SidepanelUI {
             <div class="expense-merchant">${displayData.merchant}</div>
             <div class="expense-meta">
               <span class="expense-date">${new Date(displayData.date).toLocaleDateString()}</span>
-              <span class="expense-category">${displayData.category || 'Uncategorized'}</span>
+              <span class="expense-category">${formatCategoryDisplay(displayData.category)}</span>
               <span class="expense-id">ID: ${displayData.id}</span>
             </div>
             <div class="expense-status-container">
@@ -973,7 +974,7 @@ export class SidepanelUI {
         </div>
         <div class="detail-field">
           <span class="detail-label">Category</span>
-          <span class="detail-value">${template.expenseData.details?.category || 'Uncategorized'}</span>
+          <span class="detail-value">${formatCategoryDisplay(template.expenseData.details?.category)}</span>
         </div>
         <div class="detail-field">
           <span class="detail-label">Description</span>
@@ -1960,7 +1961,7 @@ export class SidepanelUI {
         </div>
         <div class="detail-field">
           <span class="detail-label">Category</span>
-          <span class="detail-value">${this.state.currentExpense.merchant.categoryGroup || 'Uncategorized'}</span>
+          <span class="detail-value">${formatCategoryDisplay(this.state.currentExpense.merchant.categoryGroup)}</span>
         </div>
       `;
     }
@@ -2404,7 +2405,7 @@ export class SidepanelUI {
         displayData.merchant,
         displayData.amount.toFixed(2),
         displayData.currency,
-        displayData.category || 'Uncategorized',
+        formatCategoryDisplay(displayData.category),
         displayData.status || 'Unknown',
         displayData.id,
       ];

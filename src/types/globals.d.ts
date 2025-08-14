@@ -21,6 +21,13 @@ interface ApiTestResult {
   responseCode?: number;
 }
 
+// Performance memory API
+interface _MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
 declare global {
   interface Window {
     testApiParameters?: () => Promise<void | ApiTestResult[]>;
