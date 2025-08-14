@@ -100,6 +100,12 @@ export class SidepanelUI {
           margin-bottom: 16px;
         }
 
+        .header-buttons {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
         .open-in-navan-link {
           display: inline-flex;
           align-items: center;
@@ -793,12 +799,15 @@ export class SidepanelUI {
               <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
           </a>
-          <button class="btn-customize-fields" id="customizeFields" 
-                  title="Customize which fields are displayed and their order. Select up to 8 fields to show in expense details."
-                  aria-label="Customize display fields">
-            <span class="customize-icon">⚙️</span>
-            <span class="customize-text">Customize Display</span>
-          </button>
+          <div class="header-buttons">
+            <button id="duplicateExpense" class="btn btn-primary" style="margin-right: 10px;">Duplicate Expense</button>
+            <button class="btn-customize-fields" id="customizeFields" 
+                    title="Customize which fields are displayed and their order. Select up to 8 fields to show in expense details."
+                    aria-label="Customize display fields">
+              <span class="customize-icon">⚙️</span>
+              <span class="customize-text">Customize Display</span>
+            </button>
+          </div>
         </div>
         <div class="detail-field expense-id-field">
           <span class="detail-label">Expense ID</span>
@@ -824,6 +833,16 @@ export class SidepanelUI {
           e.preventDefault();
           e.stopPropagation();
           this.showFieldSettings();
+        });
+      }
+
+      // Add event listener for duplicate expense button
+      const duplicateBtn = detailContent.querySelector('#duplicateExpense');
+      if (duplicateBtn) {
+        duplicateBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          void this.handleDuplicateExpense();
         });
       }
     }

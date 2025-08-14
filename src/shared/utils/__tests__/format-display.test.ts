@@ -64,7 +64,9 @@ describe('formatCategoryDisplay', () => {
       expect(formatCategoryDisplay('business_services')).toBe('Business Services');
       expect(formatCategoryDisplay('miscellaneous_food_stores')).toBe('Miscellaneous Food Stores');
       expect(formatCategoryDisplay('computer_software_stores')).toBe('Computer Software Stores');
-      expect(formatCategoryDisplay('telecommunication_services')).toBe('Telecommunication Services');
+      expect(formatCategoryDisplay('telecommunication_services')).toBe(
+        'Telecommunication Services'
+      );
       expect(formatCategoryDisplay('office_supplies')).toBe('Office Supplies');
     });
   });

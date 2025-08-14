@@ -11,6 +11,6 @@ export function formatCategoryDisplay(value: string | undefined | null): string 
   // Convert snake_case to Title Case
   return value
     .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 }
