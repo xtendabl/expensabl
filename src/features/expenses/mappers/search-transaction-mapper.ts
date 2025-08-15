@@ -243,17 +243,23 @@ export function getSearchTransactionDisplayData(
  * Converts SearchTransaction to ExpenseCreatePayload for creating new expenses
  */
 export function searchTransactionToCreatePayload(transaction: SearchTransaction): any {
-  return {
+  const payload: any = {
     merchantAmount: transaction.merchantAmount,
     merchantCurrency: transaction.merchantCurrency,
     date: new Date().toISOString().split('T')[0], // Today's date for new expenses
     merchant: { name: transaction.merchant.name },
-    policyType: transaction.policyType || undefined,
-    details: {
-      category: transaction.merchant.categoryGroup,
-      description: transaction.policyName,
-    },
   };
+
+  // Only include policyType if it's a valid value (not "OTHER" or empty)
+  if (
+    transaction.policyType &&
+    transaction.policyType !== 'OTHER' &&
+    transaction.policyType.trim() !== ''
+  ) {
+    payload.policyType = transaction.policyType;
+  }
+
+  return payload;
 }
 
 /**

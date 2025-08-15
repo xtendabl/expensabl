@@ -442,3 +442,4 @@ A task is **Done** only when **ALL** of the following criteria are met:
   * **Validate Permissions:** When dealing with Chrome API features, always consider if the `manifest.json` needs permission updates.
   * **Service Container:** Always use the service container for dependency injection rather than direct imports when working with handlers.
   * **Package Info:** Check `package-info.ts` files for module-specific documentation and version information.
+- when doing git operations, YOU MUST NEVER mention that it was written by claude code or discuss the author in any way

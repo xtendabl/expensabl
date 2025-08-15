@@ -1,6 +1,5 @@
 import { SearchTransaction, ExpenseCreatePayload } from '../../../features/expenses/types';
 import { searchTransactionToCreatePayload } from '../../../features/expenses/mappers/search-transaction-mapper';
-import { modalManager } from '../modals/modal-manager';
 import { showAmountModificationModal } from '../modals/amount-modification-modal';
 import { showReceiptSelectionModal } from '../modals/receipt-selection-modal';
 import { showSubmitDraftModal } from '../modals/submit-draft-modal';
@@ -253,12 +252,13 @@ class ExpenseDuplicationWorkflow {
     const baseExpenseData = searchTransactionToCreatePayload(originalExpense);
     const expenseData: ExpenseCreatePayload = {
       ...baseExpenseData,
-      date: new Date().toISOString(),
+      date: new Date().toISOString().split('T')[0], // Use date format YYYY-MM-DD, not full ISO timestamp
       merchantAmount: modifiedData.merchantAmount ?? originalExpense.merchantAmount,
       details: {
-        ...baseExpenseData.details,
+        ...(baseExpenseData.details || {}),
         description: `Duplicate of ${originalExpense.merchant?.name || 'expense'}`,
       },
+      isDraft: !submitAsComplete, // Set isDraft based on user choice
     };
 
     this.state.completedAt = new Date();
@@ -269,6 +269,9 @@ class ExpenseDuplicationWorkflow {
       submitAsComplete,
       hasReceipt: !!receiptFile,
     });
+
+    // Debug: Log the exact payload being sent
+    console.log('🔍 DEBUG: Expense payload being sent:', JSON.stringify(expenseData, null, 2));
 
     await this.callbacks.onComplete(expenseData, submitAsComplete, receiptFile);
     this.cleanup();
